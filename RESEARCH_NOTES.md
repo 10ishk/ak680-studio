@@ -45,6 +45,10 @@ The supplied sample export wraps most profile data in a top-level `profile` obje
 - Merge restore keeps existing saved profiles and rekeys imported duplicate IDs before saving.
 - Replace restore requires confirmation and resets the active profile when the backup active ID is missing or invalid.
 - Duplicate profile IDs are normalized before local storage or restored backup data is accepted.
+- WP5 public alpha readiness is repo/UI polish only and does not change hardware capabilities.
+- The project is licensed under Apache-2.0.
+- Public alpha issue templates should avoid requiring users to share sensitive serial numbers, HID paths, profile data, or local file paths.
+- Check-only CI is acceptable for WP5; release binary publishing remains out of scope.
 - Native HID command framing for safe hardware writes is unknown.
 - Verification behavior after a hardware write is unknown.
 - Backup and restore semantics for device state are unknown.
@@ -57,4 +61,4 @@ The supplied sample export wraps most profile data in a top-level `profile` obje
 - Design a Red Team plan for the smallest possible future hardware write.
 - Require maintainer approval before adding hardware write code.
 
-Work Package 1 performs local JSON inspection only. Work Package 2 adds read-only HID enumeration only. Work Package 3 adds local-only profile storage, export, active selection, rename/delete, and read-only comparison. Work Package 4 hardens local-only profile library backup export/import and storage recovery. Hardware writes, cloud sync, remote upload, databases, and user accounts remain out of scope.
+Work Package 1 performs local JSON inspection only. Work Package 2 adds read-only HID enumeration only. Work Package 3 adds local-only profile storage, export, active selection, rename/delete, and read-only comparison. Work Package 4 hardens local-only profile library backup export/import and storage recovery. Work Package 5 prepares public alpha docs, safety messaging, templates, and check-only CI. Hardware writes, cloud sync, remote upload, databases, release publishing, and user accounts remain out of scope.

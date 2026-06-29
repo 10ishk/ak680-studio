@@ -8,8 +8,8 @@
 **Repository name:** `ak680-studio`  
 **Project type:** Open-source native desktop app  
 **Target device:** AJAZZ AK680 V2  
-**License:** MIT, unless the maintainer chooses another permissive license before first public release  
-**Status:** Work Package 4 backup hardening and import/export polish
+**License:** Apache-2.0
+**Status:** Work Package 5 public alpha polish
 
 AK680 Studio is an unofficial, open-source, lightweight native desktop app for inspecting and eventually configuring the AJAZZ AK680 V2 keyboard.
 
@@ -34,7 +34,7 @@ The long-term app should support:
 - Local backups before device writes
 - Safe, documented hardware operations
 
-Work Packages 1, 2, 3, and 4 are intentionally read-only and do not configure the physical keyboard.
+Work Packages 1, 2, 3, 4, and 5 are intentionally read-only and do not configure the physical keyboard.
 
 ---
 
@@ -69,10 +69,8 @@ Recommended open-source files:
 
 Optional later:
 
-- `.github/ISSUE_TEMPLATE/bug_report.md`
-- `.github/ISSUE_TEMPLATE/feature_request.md`
-- `.github/pull_request_template.md`
-- GitHub Actions CI workflow
+- Additional GitHub Actions jobs beyond check-only CI
+- Screenshot assets under `docs/screenshots/`
 
 ---
 
@@ -160,6 +158,8 @@ For Work Package 3, Codex may implement local profile persistence, local export,
 The UI must clearly state that profile management is local-only.
 
 For Work Package 4, Codex may implement local profile storage schema versioning, full saved-profile library backup export/import, merge restore, confirmed replace restore, duplicate profile ID handling, active profile preservation/reset behavior, corrupt or incompatible local storage recovery, clearer storage health diagnostics, and improved local import/export messages only. WP4 must not implement hardware writes, HID writes, keyboard configuration reads/writes, apply-to-keyboard actions, sync-to-keyboard actions, save-to-device behavior, key remapping editors, RGB editors, rapid trigger editors, SOCD editors, macro editors, firmware flashing, calibration, cloud sync, user accounts, remote upload, database services, installer/release packaging, Electron, or embedded AJAZZ website behavior.
+
+For Work Package 5, Codex may implement public alpha repo polish, in-app alpha/read-only messaging, an About screen or section, GitHub issue templates, a pull request template, check-only GitHub Actions CI, contribution guidance, security guidance, screenshot instructions, and copy/empty-state polish only. WP5 must not implement hardware writes, HID writes, keyboard configuration reads/writes, apply-to-keyboard actions, sync-to-keyboard actions, save-to-device behavior, key remapping editors, RGB editors, rapid trigger editors, SOCD editors, macro editors, firmware flashing, calibration, cloud sync, user accounts, remote upload, database services, installer/release packaging, release binary publishing, Electron, or embedded AJAZZ website behavior.
 
 Any future hardware-write package must include:
 
@@ -363,6 +363,54 @@ Add backup hardening and import/export UX polish for local saved profiles while 
 - Remote upload
 - Database services
 - Installer/release packaging
+- Electron wrapper
+- Embedded AJAZZ website
+
+---
+
+## 7d. Work Package 5 Scope
+
+### Goal
+
+Prepare AK680 Studio for a clean public alpha while preserving all accepted Work Package 1, Work Package 2, Work Package 3, and Work Package 4 behavior.
+
+### In Scope
+
+- Public-facing README structure and repo polish
+- In-app public alpha/read-only safety messaging
+- About screen or About section
+- Prominent safety notice covering unofficial status, local-only behavior, read-only HID detection, no hardware writes, and no AJAZZ affiliation
+- Screenshot placeholders or screenshot instructions
+- GitHub issue templates for bug reports, feature requests, and device detection reports
+- Pull request template
+- Basic check-only GitHub Actions CI for lint/build/test where practical, or a documented skip reason when workflow push permission is unavailable
+- Contribution guidance for safe hardware/protocol work
+- SECURITY.md hardware safety and responsible disclosure guidance
+- UI copy and empty/error state polish where practical
+- Apache-2.0 project license
+- Documentation updates
+
+### Out of Scope
+
+- Hardware writes
+- HID writes
+- Keyboard configuration reads/writes
+- Applying profiles to keyboard
+- Syncing profiles to keyboard
+- Save-to-device behavior
+- Key remapping editor
+- RGB editor
+- Rapid trigger editor
+- SOCD editor
+- Macro editor
+- Firmware flashing
+- Calibration
+- Cloud sync
+- User accounts
+- Remote upload
+- Database services
+- Installer/release packaging
+- Release binary publishing
 - Electron wrapper
 - Embedded AJAZZ website
 

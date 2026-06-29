@@ -1,8 +1,46 @@
 # AK680 Studio
 
-AK680 Studio is an unofficial, open-source native desktop app for inspecting AJAZZ AK680 V2 profile exports, detecting the target keyboard locally, and managing saved local profile backups. Work Package 4 hardens local profile library backup and restore behavior while preserving the Work Package 1 profile inspector, Work Package 2 read-only HID detection, and Work Package 3 local profile manager.
+AK680 Studio is an unofficial, open-source native desktop public alpha for inspecting AJAZZ AK680 V2 profile exports, detecting the target keyboard with read-only HID metadata, and managing local saved profile backups.
 
-This project is not affiliated with, endorsed by, or maintained by AJAZZ. The official vendor tooling remains the supported configuration path until native hardware-write behavior is researched, documented, and reviewed in a future work package.
+This project is not affiliated with, endorsed by, or maintained by AJAZZ. The official vendor tooling remains the supported configuration path until any native hardware-write behavior is researched, documented, reviewed, and explicitly approved in a future work package.
+
+## Public Alpha Status
+
+AK680 Studio is local-only and read-only with respect to keyboard hardware.
+
+- Profile imports are parsed locally.
+- Saved profiles and backups stay on this machine.
+- HID detection enumerates safe metadata only.
+- No hardware writes are implemented.
+- No apply, sync, save-to-device, firmware flashing, calibration, cloud sync, user account, remote upload, or database feature is included.
+- This is not a complete keyboard control suite yet.
+
+## Current Features
+
+- Tauri v2 native desktop shell.
+- React, TypeScript, and Tailwind UI.
+- AK680 V2 profile JSON import and validation.
+- Read-only profile inspector.
+- Keyboard layout view rendered from `keyList`.
+- Read-only lighting, rapid trigger, SOCD, and macro summaries.
+- Read-only Rust HID enumeration with target matching for VID `3141` and PID `32956`.
+- Local saved profile manager backed by browser `localStorage`.
+- Active local profile selection, rename, delete with confirmation, and individual JSON export.
+- Full local profile library backup export/import with schema validation.
+- Merge and confirmed replace restore modes.
+- Duplicate profile ID handling and corrupt/incompatible storage recovery.
+- Diagnostics and About screens with public-alpha safety status.
+
+## Screenshots
+
+Screenshots are not committed yet. Before adding screenshots:
+
+1. Run `npm run tauri dev`.
+2. Capture Dashboard, Device, Profiles, Diagnostics, and About screens.
+3. Save images under `docs/screenshots/`.
+4. Update this section with relative Markdown image links.
+
+Do not include private profile data, serial numbers, or local file paths in screenshots.
 
 ## Tech Stack
 
@@ -33,106 +71,61 @@ Run the native desktop app locally:
 npm run tauri dev
 ```
 
-Run frontend checks:
+## Checks
+
+Frontend:
 
 ```bash
 npm run lint
 npm run build
+npm test -- --run
+npm audit --audit-level=moderate
 ```
 
-Run the Rust check:
+Rust:
 
 ```bash
 cd src-tauri
+cargo fmt --check
 cargo check
-```
-
-Run Rust tests:
-
-```bash
-cd src-tauri
 cargo test
 ```
 
-## Work Package 1 Scope
+Native build validation:
 
-Included:
+```bash
+npm run tauri build
+```
 
-- Native Tauri app shell with sidebar navigation
-- Dashboard, Device, Profile Import, Profile Inspector, Keyboard Layout, Lighting, Rapid Trigger, Macros, and Diagnostics screens
-- Local AJAZZ profile JSON import
-- AK680 V2 profile validation
-- Read-only profile, lighting, game mode, macro, and magnetic-axis summaries
-- Keyboard layout rendering from `keyList`
-- Sample fixture at `fixtures/ak680-profile.sample.json`
+GitHub Actions CI is not committed yet because the current GitHub authentication available to Codex cannot push workflow files without the `workflow` OAuth scope. Until CI is added by a maintainer with that scope, run the checks above locally. Future CI should remain check-only and must not publish release binaries or upload installer artifacts.
 
-## Work Package 2 Scope
+## Reporting Issues
 
-Included:
+Use the GitHub issue templates:
 
-- Read-only HID enumeration through the Rust backend.
-- Device screen refresh detection action.
-- AK680 V2 target matching by VID `3141` and PID `32956`.
-- Safe metadata display for enumerated HID devices.
-- Diagnostics status for last HID detection result.
-- Practical Rust tests for target matching logic.
+- Bug report
+- Feature request
+- Device detection report
 
-Notes:
+For device detection reports, share only metadata you are comfortable posting publicly. Serial numbers and HID paths may be sensitive.
 
-- USB/wired mode may be required for the keyboard to appear as a HID device.
-- OS permissions can affect HID enumeration.
-- Detection is local and read-only.
+## Contributing
 
-## Work Package 3 Scope
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, checks, pull request expectations, and safe hardware/protocol contribution guidance.
 
-Included:
+Hardware-write or protocol work requires documented research, explicit maintainer approval, and Red Team safety review before implementation.
 
-- Local profile manager backed by browser `localStorage`.
-- Save imported valid AK680 V2 profiles locally.
-- List saved local profiles.
-- Select an active local profile.
-- Rename saved profile display names.
-- Delete saved profiles with confirmation.
-- Export saved profiles as JSON backups.
-- Show source filename and created/imported/updated timestamps.
-- Read-only high-level comparison between two saved profiles.
-- Diagnostics storage status.
+## Security and Hardware Safety
 
-Notes:
+See [SECURITY.md](SECURITY.md) for responsible disclosure and hardware-safety reporting guidance.
 
-- Saved profiles remain on this machine only.
-- Export creates a JSON file from the saved profile data.
-- Comparison summarizes profile metadata and high-level section differences only.
-- No cloud sync, remote upload, database, or user account is used.
+Report unsafe hardware-control behavior, accidental write paths, or security issues promptly. The current public alpha is not expected to write to keyboard hardware.
 
-## Work Package 4 Scope
-
-Included:
-
-- Local profile storage schema versioning.
-- Full saved-profile library backup export as JSON.
-- Full saved-profile library backup import and restore.
-- Backup shape validation before restore.
-- Merge restore mode that safely rekeys duplicate profile IDs.
-- Replace restore mode behind an explicit confirmation prompt.
-- Active profile preservation where safe and safe reset when needed.
-- Graceful fallback for corrupt or incompatible local storage.
-- Clear storage health and backup/import status in Diagnostics.
-- Practical tests for backup validation, restore modes, duplicate handling, and corrupt storage handling.
-
-Notes:
-
-- Backup and restore operate only on local saved profile data.
-- Replace restore changes the local saved-profile library only after confirmation.
-- Duplicate profile IDs are normalized before being stored.
-- Backup import does not upload data or talk to keyboard hardware.
-
-Out of scope:
+## Not Supported Yet
 
 - Hardware writes
 - HID write/send commands
-- HID feature report send behavior
-- Keyboard configuration read/write commands
+- Keyboard configuration reads/writes
 - Applying profiles to keyboard
 - Syncing profiles to keyboard
 - Save-to-device behavior
@@ -150,8 +143,10 @@ Out of scope:
 - Calibration
 - Cloud login, sync, upload, or database features
 - User accounts
+- Installer/release packaging
+- Release binary publishing
 - Electron or embedded AJAZZ website wrappers
 
-## Safety
+## License
 
-Work Packages 1 through 4 are read-only with respect to keyboard hardware. The app does not include hardware write commands, save-to-device actions, apply-to-device actions, sync-to-device actions, HID feature report sends, keyboard configuration reads or writes, firmware flashing, calibration, remote upload, database services, or background device sync.
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).

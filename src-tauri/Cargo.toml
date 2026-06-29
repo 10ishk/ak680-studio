@@ -3,6 +3,7 @@ name = "ak680-studio"
 version = "0.1.0"
 description = "Read-only native profile inspector for the AJAZZ AK680 V2 keyboard"
 authors = ["AK680 Studio contributors"]
+license = "Apache-2.0"
 edition = "2021"
 
 [lib]

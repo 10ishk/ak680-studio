@@ -6,6 +6,7 @@ import {
   FileJson,
   Gauge,
   Home,
+  Info,
   Keyboard,
   Lightbulb,
   ListChecks,
@@ -56,7 +57,8 @@ type Screen =
   | "lighting"
   | "rapid-trigger"
   | "macros"
-  | "diagnostics";
+  | "diagnostics"
+  | "about";
 
 const sampleImport = parseImportedProfile(JSON.stringify(sampleProfile), "ak680-profile.sample.json");
 
@@ -71,6 +73,7 @@ const navigation: Array<{ id: Screen; label: string; icon: typeof Home }> = [
   { id: "rapid-trigger", label: "Rapid Trigger", icon: Gauge },
   { id: "macros", label: "Macros", icon: Workflow },
   { id: "diagnostics", label: "Diagnostics", icon: ListChecks },
+  { id: "about", label: "About", icon: Info },
 ];
 
 export default function App() {
@@ -231,7 +234,7 @@ export default function App() {
               </div>
               <div>
                 <p className="text-lg font-bold">AK680 Studio</p>
-                <p className="text-xs text-slate-600">Unofficial profile inspector</p>
+                <p className="text-xs text-slate-600">Public alpha, read-only</p>
               </div>
             </div>
           </div>
@@ -297,6 +300,7 @@ export default function App() {
               localProfileStorage={localProfileStorage}
             />
           )}
+          {activeScreen === "about" && <About />}
         </main>
       </div>
     </div>
@@ -324,6 +328,24 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function AlphaSafetyNotice() {
+  return (
+    <div className="rounded border border-copper/40 bg-copper/10 p-5">
+      <div className="flex items-start gap-3">
+        <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
+        <div>
+          <p className="font-bold text-ink">Public alpha, local-only, and read-only for hardware</p>
+          <p className="mt-1 text-sm leading-6 text-slate-700">
+            AK680 Studio is an unofficial community project for the AJAZZ AK680 V2. It is not affiliated with,
+            endorsed by, or maintained by AJAZZ. This alpha stores data locally, enumerates HID devices with
+            read-only metadata, and does not write settings to keyboard hardware.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Dashboard({
   profile,
   importedProfile,
@@ -337,7 +359,10 @@ function Dashboard({
   const activeProfile = localProfileStorage.profiles.find((saved) => saved.id === localProfileStorage.activeProfileId);
   return (
     <>
-      <PageHeader title="Dashboard" eyebrow="Native app foundation" />
+      <PageHeader title="Dashboard" eyebrow="Public alpha overview" />
+      <Section title="Alpha Safety Notice">
+        <AlphaSafetyNotice />
+      </Section>
       <Section title="Session Summary">
         <InfoGrid
           items={[
@@ -357,8 +382,9 @@ function Dashboard({
           <div className="flex items-start gap-3">
             <ShieldCheck className="mt-1 h-5 w-5 text-moss" />
             <p className="text-sm leading-6 text-slate-700">
-              This build imports local JSON, stores saved profiles locally, and displays profile information only. It
-              has no hardware write path, no cloud sync, no firmware tools, and no embedded vendor website.
+              This public alpha imports local JSON, stores saved profiles locally, and displays profile information
+              only. It has no hardware write path, no cloud sync, no account system, no firmware tools, and no
+              embedded vendor website.
             </p>
           </div>
         </div>
@@ -387,6 +413,9 @@ function Device({
             <div>
               <p className="text-lg font-bold text-ink">{statusText.title}</p>
               <p className="mt-1 text-sm leading-6 text-slate-600">{statusText.body}</p>
+              <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-moss">
+                Detection reads HID metadata only. It does not configure the keyboard.
+              </p>
             </div>
             <button
               type="button"
@@ -401,7 +430,7 @@ function Device({
           </div>
           {hidDetection.status === "error" && (
             <div className="mt-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">
-              {hidDetection.error}
+              HID enumeration failed locally: {hidDetection.error}
             </div>
           )}
         </div>
@@ -418,16 +447,16 @@ function Device({
       />
       <Section title="Matched AK680 V2 Devices">
         {matchedDevices.length === 0 ? (
-          <EmptyState message="No HID device matching VID 3141 and PID 32956 has been detected in the latest result." />
+          <EmptyState message="No AK680 V2 match was found in the latest read-only HID enumeration. Check USB/wired mode and OS HID permissions if the keyboard is connected." />
         ) : (
           <DeviceTable devices={matchedDevices} />
         )}
       </Section>
       <Section title="Enumerated HID Devices">
         {!result ? (
-          <EmptyState message="Run refresh detection to enumerate local HID devices." />
+          <EmptyState message="Run refresh detection to enumerate local HID device metadata. No settings are read from or written to the keyboard." />
         ) : result.devices.length === 0 ? (
-          <EmptyState message="HID enumeration completed, but no devices were returned." />
+          <EmptyState message="HID enumeration completed, but no devices were returned by the operating system." />
         ) : (
           <DeviceTable devices={result.devices} />
         )}
@@ -558,7 +587,7 @@ function Profiles({
       </Section>
       <Section title="Saved Local Profiles">
         {savedProfiles.length === 0 ? (
-          <EmptyState message="No local profiles saved yet. Import a valid AK680 V2 profile and save it locally." />
+          <EmptyState message="No local profiles are saved yet. Import a valid AK680 V2 profile, then save it to this machine only." />
         ) : (
           <div className="space-y-3">
             {savedProfiles.map((savedProfile) => (
@@ -594,7 +623,8 @@ function Profiles({
             <div>
               <h3 className="font-bold text-ink">Export full local library</h3>
               <p className="mt-1 text-sm leading-6 text-slate-600">
-                Exports every saved local profile, schema version, metadata, and active profile selection as local JSON.
+                Exports every saved local profile, schema version, metadata, and active profile selection as a local
+                JSON file. Nothing is uploaded.
               </p>
               <button
                 type="button"
@@ -607,7 +637,8 @@ function Profiles({
             <div>
               <h3 className="font-bold text-ink">Import or restore backup</h3>
               <p className="mt-1 text-sm leading-6 text-slate-600">
-                Backup shape is validated before restore. Replace mode asks for confirmation.
+                Backup shape is validated before restore. Merge keeps existing local profiles; replace asks for
+                confirmation first.
               </p>
               <label className="mt-3 block text-sm font-semibold text-ink">
                 Restore mode
@@ -643,7 +674,7 @@ function Profiles({
       </Section>
       <Section title="Read-Only Profile Comparison">
         {savedProfiles.length < 2 ? (
-          <EmptyState message="Save at least two local profiles to compare them." />
+          <EmptyState message="Save at least two local profiles to compare high-level profile data. Comparison is read-only." />
         ) : (
           <div className="space-y-4">
             <div className="grid gap-3 md:grid-cols-2">
@@ -985,6 +1016,8 @@ function Diagnostics({
       "No firmware flashing",
       "No calibration controls",
       "No cloud login or sync",
+      "No remote upload",
+      "No database service",
       "No embedded AJAZZ website",
       "No Electron wrapper",
       "HID enumeration only",
@@ -996,6 +1029,9 @@ function Diagnostics({
   return (
     <>
       <PageHeader title="Diagnostics" eyebrow="Validation and safety" />
+      <Section title="Public Alpha Status">
+        <AlphaSafetyNotice />
+      </Section>
       <ValidationPanel importedProfile={importedProfile} />
       <Section title="Target Identity">
         <InfoGrid
@@ -1042,6 +1078,52 @@ function Diagnostics({
             </li>
           ))}
         </ul>
+      </Section>
+    </>
+  );
+}
+
+function About() {
+  return (
+    <>
+      <PageHeader title="About" eyebrow="Public alpha safety" />
+      <Section title="AK680 Studio">
+        <AlphaSafetyNotice />
+      </Section>
+      <Section title="Current Capabilities">
+        <InfoGrid
+          items={[
+            { label: "Project status", value: "Public alpha" },
+            { label: "Target keyboard", value: "AJAZZ AK680 V2" },
+            { label: "Device identity", value: TARGET_DEVICE_ID },
+            { label: "Hardware detection", value: "Read-only HID metadata enumeration" },
+            { label: "Profile storage", value: "Local browser storage on this machine" },
+            { label: "Profile backups", value: "Local JSON import/export only" },
+            { label: "Hardware writes", value: "Not implemented" },
+            { label: "Vendor affiliation", value: "Unofficial; no AJAZZ affiliation" },
+          ]}
+        />
+      </Section>
+      <Section title="Safety Summary">
+        <div className="rounded border border-line bg-white p-5">
+          <p className="text-sm leading-6 text-slate-700">
+            AK680 Studio can inspect imported profile JSON, list local HID device metadata, manage saved local profiles,
+            and export or restore local backup files. It is not a complete keyboard control suite yet. Hardware-write,
+            firmware, calibration, keymap editing, RGB editing, rapid trigger editing, SOCD editing, and macro editing
+            work requires future protocol research, Red Team review, and explicit maintainer approval before
+            implementation.
+          </p>
+        </div>
+      </Section>
+      <Section title="Reporting and Contributions">
+        <div className="rounded border border-line bg-white p-5">
+          <p className="text-sm leading-6 text-slate-700">
+            Please use the GitHub issue templates for bugs, feature requests, and device detection reports. Do not share
+            sensitive serial numbers, private profile data, or local paths unless you are comfortable making them public.
+            Contributions should keep the public alpha local-only and read-only for keyboard hardware unless a future
+            work package explicitly changes that scope.
+          </p>
+        </div>
       </Section>
     </>
   );
@@ -1094,7 +1176,7 @@ function getHidStatusText(hidDetection: HidDetectionState) {
     case "detected":
       return {
         title: "AK680 V2 detected",
-        body: "At least one HID device matched VID 3141 and PID 32956.",
+        body: "At least one HID device matched VID 3141 and PID 32956. Detection remains read-only.",
       };
     case "not-detected":
       return {
@@ -1110,7 +1192,7 @@ function getHidStatusText(hidDetection: HidDetectionState) {
     default:
       return {
         title: "Detection not run",
-        body: "Refresh detection to enumerate local HID devices using read-only metadata.",
+        body: "Refresh detection to enumerate local HID device metadata.",
       };
   }
 }

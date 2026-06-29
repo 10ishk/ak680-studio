@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased - Work Package 5
+
+- Added public alpha safety messaging in-app.
+- Added an About screen with unofficial status, local-only behavior, read-only HID detection, and no-hardware-write status.
+- Improved Dashboard, Device, Profiles, and Diagnostics copy for public alpha users.
+- Improved README structure with current capabilities, setup, checks, screenshot instructions, issue reporting, contribution guidance, security guidance, and safety exclusions.
+- Added GitHub issue templates for bug reports, feature requests, and device detection reports.
+- Added a pull request template with test, docs, and safety checklist items.
+- Documented that GitHub Actions CI is skipped until a maintainer with `workflow` OAuth scope can add the check-only workflow.
+- Updated CONTRIBUTING.md with safe hardware/protocol contribution guidance.
+- Updated SECURITY.md with hardware safety and responsible disclosure guidance.
+- Changed the project license to Apache-2.0.
+
+Known limitations:
+
+- Screenshots are documented as instructions/placeholders and are not committed yet.
+- CI is not committed yet because the current GitHub authentication cannot push workflow files without `workflow` scope. Future CI should be check-only and must not publish release binaries or installer artifacts.
+- No hardware writes, HID writes, keyboard configuration reads/writes, apply/sync/save-to-device behavior, editors, cloud sync, remote upload, database services, release publishing, or user accounts are included.
+
 ## Unreleased - Work Package 4
 
 - Added local profile storage schema versioning.

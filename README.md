@@ -12,7 +12,8 @@ AK680 Studio is local-only and read-only with respect to keyboard hardware.
 - Saved profiles and backups stay on this machine.
 - Local editor changes affect exported or saved local profile JSON only.
 - Dry-run write safety plans are previews only and send no packets.
-- Controlled Read Experiment remains disabled under WP10 Outcome B because an exact safe device-info query is not justified yet.
+- Controlled Read Experiment remains disabled because an exact safe device-info query is not justified yet.
+- Protocol Evidence Guide and Candidate Query Dossier collect evidence only and do not enable command execution.
 - HID detection enumerates safe metadata only.
 - No hardware writes are implemented.
 - No apply, sync, save-to-device, firmware flashing, calibration, cloud sync, user account, remote upload, or database feature is included.
@@ -39,6 +40,7 @@ AK680 Studio is local-only and read-only with respect to keyboard hardware.
 - Device compatibility and safety checklist with backup-before-write future gate.
 - Local dry-run plan export as JSON.
 - Controlled Read Experiment harness under Protocol Research with manual gating, target path/interface selection, WP10 disabled execution state, missing-evidence reporting, and local status export.
+- Protocol Evidence Guide and Candidate Query Dossier template with local example dossier JSON export.
 - Protocol Research screen for safe HID metadata inspection and local diagnostics snapshot export.
 - Diagnostics and About screens with public-alpha safety status.
 
@@ -80,7 +82,7 @@ The Protocol Research screen includes a Controlled Read Experiment harness for f
 
 Current WP10 outcome: Outcome B, still disabled. Current project research notes do not document the exact HID report type, report ID, request bytes or command framing, expected response length/format, or evidence proving a device-info query is read/query-only and not a keyboard setting write.
 
-AK680 Studio therefore does not implement a Rust controlled-read command, does not expose a Tauri controlled-read invoke, does not send any HID report, and does not fabricate response bytes. The UI, Diagnostics, and exported status JSON report this disabled state honestly.
+AK680 Studio therefore does not implement a Rust controlled-read command, does not expose a Tauri controlled-read invoke, does not send any HID report, and does not fabricate response bytes. The UI, Diagnostics, and exported status JSON report this disabled state honestly. WP11 adds a Protocol Evidence Guide and Candidate Query Dossier workflow to organize future evidence without enabling execution.
 
 The harness still models the required future safety gates:
 
@@ -94,6 +96,24 @@ The harness still models the required future safety gates:
 - Missing-evidence reporting for the disabled device-info query gate
 
 This is not write support. It does not change keyboard settings, apply profiles, sync profiles, save to device, flash firmware, calibrate hardware, or upload data remotely.
+
+## Protocol Evidence Guide
+
+The Protocol Evidence Guide under Protocol Research lists the evidence required before a future device-info read query can even be proposed:
+
+- Exact report type
+- Report ID if applicable
+- Request bytes or command framing
+- Expected response length and shape
+- Target interface/path constraints
+- Read-only justification
+- Non-write rationale
+- Evidence source
+- GPL cleanliness statement
+
+The Candidate Query Dossier template includes candidate name, evidence source type, report type, report ID, request bytes/framing, expected response, target interface/path notes, read-only justification, non-write rationale, risk assessment, GPL/source cleanliness notes, reviewer notes, and status. Allowed statuses are only `draft`, `needs evidence`, `rejected`, and `ready for Red Team review`.
+
+Ready for Red Team review does not mean ready to run. Dossier evidence does not enable command execution in WP11; any future query implementation still requires a separate work package and Red Team plan. The local example dossier export contains placeholders only, no guessed packet bytes, and no GPL-derived implementation material.
 
 ## Protocol Research
 

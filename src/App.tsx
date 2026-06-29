@@ -78,6 +78,12 @@ import {
   inferLikelyResearchInterface,
   summarizeProtocolDevice,
 } from "./lib/protocolResearch";
+import {
+  EXAMPLE_CANDIDATE_QUERY_DOSSIER,
+  PROTOCOL_EVIDENCE_REQUIRED_ITEMS,
+  createCandidateQueryDossierExport,
+  validateCandidateQueryDossier,
+} from "./lib/protocolEvidence";
 import type { HidDetectionResult, HidDetectionState } from "./types/hid";
 import type { LocalProfileStorageState, LocalProfileStore, SavedLocalProfile } from "./types/localProfile";
 import type { AjazzProfile, ImportedProfile, KeyboardKey } from "./types/profile";
@@ -427,6 +433,18 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
+  function exportCandidateQueryDossier() {
+    const exportedDossier = createCandidateQueryDossierExport({ dossier: EXAMPLE_CANDIDATE_QUERY_DOSSIER });
+    const json = JSON.stringify(exportedDossier, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ak680-candidate-query-dossier-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   function recordDisabledControlledReadStatus() {
     setControlledReadResult(
       createDisabledControlledReadResult({
@@ -542,6 +560,7 @@ export default function App() {
               onControlledReadSelectedPathChange={setControlledReadSelectedPath}
               onRecordDisabledControlledReadStatus={recordDisabledControlledReadStatus}
               onExportControlledReadStatus={exportControlledReadStatus}
+              onExportCandidateQueryDossier={exportCandidateQueryDossier}
               onRefresh={refreshHidDetection}
               onExportSnapshot={exportProtocolDiagnosticsSnapshot}
             />
@@ -1836,6 +1855,7 @@ function ProtocolResearch({
   onControlledReadSelectedPathChange,
   onRecordDisabledControlledReadStatus,
   onExportControlledReadStatus,
+  onExportCandidateQueryDossier,
   onRefresh,
   onExportSnapshot,
 }: {
@@ -1847,6 +1867,7 @@ function ProtocolResearch({
   onControlledReadSelectedPathChange: (path: string) => void;
   onRecordDisabledControlledReadStatus: () => void;
   onExportControlledReadStatus: () => void;
+  onExportCandidateQueryDossier: () => void;
   onRefresh: () => Promise<void>;
   onExportSnapshot: () => void;
 }) {
@@ -1855,6 +1876,7 @@ function ProtocolResearch({
   const likelyResearchInterface = inferLikelyResearchInterface(matchingInterfaces);
   const profile = importedProfile.validation.valid ? importedProfile.profile : undefined;
   const activeProfile = localProfileStorage.profiles.find((saved) => saved.id === localProfileStorage.activeProfileId);
+  const exampleDossierValidation = validateCandidateQueryDossier(EXAMPLE_CANDIDATE_QUERY_DOSSIER);
 
   return (
     <>
@@ -1927,6 +1949,59 @@ function ProtocolResearch({
           ]}
         />
       </Section>
+      <Section title="Protocol Evidence Guide">
+        <div className="space-y-4">
+          <div className="rounded border border-copper/40 bg-copper/10 p-5">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
+              <div>
+                <p className="font-bold text-ink">Evidence-only dossier workflow</p>
+                <p className="mt-1 text-sm leading-6 text-slate-700">
+                  WP11 collects evidence for a future device-info read query. A complete dossier can only become ready
+                  for Red Team review; it does not enable command execution, HID report sends, device-info queries, or
+                  keyboard setting changes in this app.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">Required evidence before any future query</p>
+              <ul className="mt-3 grid gap-2">
+                {PROTOCOL_EVIDENCE_REQUIRED_ITEMS.map((item) => (
+                  <li key={item} className="rounded border border-line bg-cloud px-3 py-2 text-sm text-slate-700">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">Candidate Query Dossier</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                The template captures candidate name, evidence source, report details, request framing, expected
+                response, target path/interface notes, read-only and non-write rationale, risk assessment, GPL/source
+                cleanliness notes, reviewer notes, and one allowed non-execution status.
+              </p>
+              <InfoGrid
+                items={[
+                  { label: "Example status", value: EXAMPLE_CANDIDATE_QUERY_DOSSIER.status },
+                  { label: "Complete", value: exampleDossierValidation.complete ? "Yes" : "No" },
+                  { label: "Missing fields", value: exampleDossierValidation.missingFields.length },
+                  { label: "Execution enabled", value: "No" },
+                  { label: "Future implementation", value: "Requires new work package and Red Team plan" },
+                ]}
+              />
+              <button
+                type="button"
+                onClick={onExportCandidateQueryDossier}
+                className="mt-4 rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss"
+              >
+                Export Example Dossier JSON
+              </button>
+            </div>
+          </div>
+        </div>
+      </Section>
       <Section title="Controlled Read Experiment">
         <div className="space-y-4">
           <div className="rounded border border-copper/40 bg-copper/10 p-5">
@@ -1937,7 +2012,8 @@ function ProtocolResearch({
                 <p className="mt-1 text-sm leading-6 text-slate-700">
                   WP10 selected Outcome B. Current research notes do not document the exact report type, report ID,
                   request bytes, response format, or read-only proof for a safe device-info query, so command execution
-                  is not implemented. No Rust command, Tauri invoke, HID report send, or fake response bytes are present.
+                  is not implemented. Use the WP11 Protocol Evidence Guide and Candidate Query Dossier to collect
+                  evidence for a future review; dossier completeness does not enable execution in WP11.
                 </p>
               </div>
             </div>
@@ -2148,6 +2224,7 @@ function Diagnostics({
   const hidStatus = getHidStatusText(hidDetection);
   const matchingInterfaces = getMatchingResearchInterfaces(hidDetection.result);
   const activeProfile = localProfileStorage.profiles.find((saved) => saved.id === localProfileStorage.activeProfileId);
+  const exampleDossierValidation = validateCandidateQueryDossier(EXAMPLE_CANDIDATE_QUERY_DOSSIER);
   const safetyItems = useMemo(
     () => [
       "No hardware write commands",
@@ -2218,6 +2295,21 @@ function Diagnostics({
             { label: "Unknown HID command packets", value: "Not sent" },
             { label: "Keyboard configuration writes", value: "Not implemented" },
             { label: "Future write work", value: "Requires separate work package and Red Team plan" },
+          ]}
+        />
+      </Section>
+      <Section title="Protocol Evidence Status">
+        <InfoGrid
+          items={[
+            { label: "Evidence guide", value: "Available under Protocol Research" },
+            { label: "Candidate dossier template", value: "Available for local JSON export" },
+            { label: "Required evidence items", value: PROTOCOL_EVIDENCE_REQUIRED_ITEMS.length },
+            { label: "Example dossier status", value: EXAMPLE_CANDIDATE_QUERY_DOSSIER.status },
+            { label: "Example dossier complete", value: exampleDossierValidation.complete ? "Yes" : "No" },
+            { label: "Ready enables execution", value: "No" },
+            { label: "HID command execution", value: "Not implemented" },
+            { label: "Device-info query execution", value: "Not implemented" },
+            { label: "Future implementation", value: "Requires new work package and Red Team plan" },
           ]}
         />
       </Section>

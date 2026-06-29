@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased - Work Package 11
+
+- Added a Protocol Evidence Guide under Protocol Research.
+- Added a Candidate Query Dossier template and local example dossier JSON export.
+- Added dossier validation/completeness logic for required report details, expected response, read-only/non-write rationale, GPL/source cleanliness notes, and allowed non-execution statuses.
+- Updated Controlled Read Experiment copy to point to the evidence guide while keeping execution disabled.
+- Updated Diagnostics with protocol evidence status.
+- Updated RESEARCH_NOTES.md, README.md, and PROJECT_PLAYBOOK.md with WP11 evidence-only scope and safety boundaries.
+- Added pure helper tests for dossier validation, completeness, allowed statuses, export shape, and no-execution guarantees.
+
+Known limitations:
+
+- WP11 is evidence-only and does not implement HID command execution or device-info query execution.
+- Dossier readiness means ready for Red Team review only; it does not enable execution.
+- No HID report sends, keyboard setting writes, apply/sync/save-to-device behavior, unknown or guessed HID commands, fuzzing, brute forcing, command scanning, background polling, firmware flashing, calibration, cloud sync, remote upload, database services, release publishing, or user accounts are included.
+
 ## Unreleased - Work Package 10
 
 - Selected Outcome B for the evidence-gated device-info read/query because current project research notes do not justify one exact safe query.

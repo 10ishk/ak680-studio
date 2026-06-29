@@ -10,6 +10,7 @@ export const PROTOCOL_ASSUMPTIONS = [
   "The AK680 V2 protocol is treated as proprietary HID, not QMK/VIA.",
   "Future writes require a separate work package and Red Team plan.",
   "WP10 device-info read/query execution remains disabled until exact report type, report ID, request bytes, response format, and read-only evidence are documented.",
+  "WP11 Candidate Query Dossiers collect evidence only and do not enable command execution.",
   "GPL-3.0 protocol repositories may be studied for behavior only; do not copy code.",
 ];
 
@@ -22,6 +23,7 @@ export const PROTOCOL_SAFETY_STATUS = [
   "Controlled Read Experiment is a disabled safety harness only.",
   "No Rust controlled-read command or Tauri controlled-read invoke is implemented.",
   "No HID report send or fake response bytes are implemented.",
+  "Protocol evidence dossiers require a future work package and Red Team plan before implementation.",
 ];
 
 export interface ProtocolMetadataSummary {

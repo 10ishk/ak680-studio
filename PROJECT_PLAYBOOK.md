@@ -9,7 +9,7 @@
 **Project type:** Open-source native desktop app  
 **Target device:** AJAZZ AK680 V2  
 **License:** Apache-2.0
-**Status:** Work Package 10 evidence-gated device-info read harness
+**Status:** Work Package 11 protocol evidence guide and dossier workflow
 
 AK680 Studio is an unofficial, open-source, lightweight native desktop app for inspecting and eventually configuring the AJAZZ AK680 V2 keyboard.
 
@@ -34,7 +34,7 @@ The long-term app should support:
 - Local backups before device writes
 - Safe, documented hardware operations
 
-Work Packages 1, 2, 3, 4, 5, and 6 are intentionally read-only and do not configure the physical keyboard. Work Package 7 adds local profile JSON editing only and still does not configure the physical keyboard. Work Package 8 adds dry-run write safety planning only and cannot execute hardware writes or generate real HID packets. Work Package 9 adds a controlled read experiment harness only. Work Package 10 keeps the device-info read/query disabled under Outcome B because exact safe-query evidence is missing.
+Work Packages 1, 2, 3, 4, 5, and 6 are intentionally read-only and do not configure the physical keyboard. Work Package 7 adds local profile JSON editing only and still does not configure the physical keyboard. Work Package 8 adds dry-run write safety planning only and cannot execute hardware writes or generate real HID packets. Work Package 9 adds a controlled read experiment harness only. Work Package 10 keeps the device-info read/query disabled under Outcome B because exact safe-query evidence is missing. Work Package 11 adds protocol evidence guide and dossier tooling only; it does not enable command execution.
 
 ---
 
@@ -172,6 +172,8 @@ For Work Package 8, Codex may implement a Write Safety / Dry-Run Planner screen 
 For Work Package 9, Codex may implement a gated Controlled Read Experiment section under Protocol Research / Advanced. If an exact safe query is not justified from current project research notes, Codex must implement a disabled UI/safety harness only. WP9 may require AK680 V2 VID/PID detection, exact selected matching path/interface, warning copy, explicit confirmation modeling, disabled/not-implemented status, structured status/result display, local JSON status export, Diagnostics status, and tests for gating/result/export logic. WP9 must not implement keyboard setting writes, profile apply/sync/save-to-device behavior, key remap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, unknown HID commands, fuzzing, brute forcing, command scanning, multiple command experiments, background polling, continuous monitoring, automatic command execution, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 source code/comments/structures/constants/packet framing/implementation material.
 
 For Work Package 10, Codex may implement exactly one evidence-gated device-info read/query only if the exact query is already justified in `RESEARCH_NOTES.md` without guessing and without copying GPL-3.0 source code, comments, constants, structures, or packet implementation. If that evidence is missing, WP10 must choose Outcome B and keep execution disabled/not implemented. WP10 Outcome B may improve research notes, safety copy, Diagnostics, local export shape, and tests only. WP10 must not add Rust controlled-read commands, Tauri controlled-read invokes, HID report sends, fake response bytes, keyboard setting writes, profile apply/sync/save-to-device behavior, key remap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, unknown or guessed HID commands, fuzzing, brute forcing, command scanning, multiple command experiments, background polling, continuous monitoring, automatic command execution, arbitrary command entry, raw command consoles, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 material.
+
+For Work Package 11, Codex may add protocol evidence collection guide and Candidate Query Dossier tooling only. WP11 may list required evidence, validate dossier completeness, export a blank/example local dossier, update Controlled Read copy to point to the evidence guide, update Diagnostics with evidence status, and update docs/tests. WP11 must not add HID command execution, device-info query execution, HID report sends, keyboard setting writes, profile apply/sync/save-to-device behavior, key remap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, unknown or guessed HID commands, fuzzing, brute forcing, command scanning, multiple command experiments, background polling, continuous monitoring, automatic command execution, arbitrary command entry, raw command consoles, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 source code/comments/constants/structures/packet implementation.
 
 Any future hardware-write package must include:
 
@@ -747,6 +749,76 @@ WP10 chooses Outcome B. Current project research notes do not document the exact
 - The disabled harness must not fabricate response bytes.
 - Docs and UI must not imply that a device-info query exists.
 - Future Outcome A work must first document one exact query and explain why it is read/query-only, then pass Red Team review.
+
+---
+
+## 7j. Work Package 11 Scope
+
+### Goal
+
+Add a Protocol Evidence Collection Guide and Candidate Query Dossier workflow so future work can justify a controlled device-info read query without guessing and without copying GPL-3.0 material.
+
+### Current Outcome
+
+WP11 is evidence-only. Dossier completeness can reach `ready for Red Team review`, but it cannot enable command execution in the app.
+
+### In Scope
+
+- Preserve Work Package 1 through Work Package 10 behavior
+- Protocol Evidence Guide under Protocol Research / Advanced
+- Required evidence list for exact report type, report ID if applicable, request bytes/framing, expected response length/shape, target interface/path constraints, read-only justification, non-write rationale, evidence source, and GPL cleanliness statement
+- Candidate Query Dossier template
+- Allowed statuses only: `draft`, `needs evidence`, `rejected`, `ready for Red Team review`
+- Local blank/example dossier JSON or Markdown export
+- Dossier validation and completeness logic
+- Controlled Read Experiment copy that points to the evidence guide
+- Diagnostics protocol evidence status
+- RESEARCH_NOTES.md, README.md, PROJECT_PLAYBOOK.md, and CHANGELOG.md updates
+- Practical tests for validation, export, completeness, and status logic
+
+### Out of Scope
+
+- HID command execution
+- Device-info query execution
+- HID report sends
+- Keyboard setting writes
+- Applying profiles to keyboard
+- Syncing profiles to keyboard
+- Save-to-device behavior
+- Key remap writes
+- RGB writes
+- RT/actuation writes
+- SOCD writes
+- Macro writes
+- Firmware flashing
+- Calibration
+- Unknown or guessed HID commands
+- Fuzzing
+- Brute forcing
+- Command scanning
+- Multiple command experiments
+- Background polling
+- Continuous monitoring
+- Automatic command execution on app launch or screen open
+- Arbitrary command entry
+- Raw command consoles
+- Cloud sync
+- User accounts
+- Remote upload
+- Database services
+- Release publishing
+- Electron wrapper
+- Embedded AJAZZ website
+- Copied GPL-3.0 source code, comments, constants, structures, packet framing, or implementation material
+
+### Design Rules
+
+- Dossier evidence does not enable command execution in WP11.
+- Future query implementation requires a new work package and Red Team plan.
+- Do not add Rust or Tauri command execution paths.
+- Do not add HID report send paths.
+- Placeholder fields must stay clearly non-executable.
+- Exports must remain local-only.
 
 ---
 

@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased - Work Package 3
+
+- Added a local profile manager backed by browser `localStorage`.
+- Added local save/list/select-active/rename/delete/export behavior for valid AK680 V2 profiles.
+- Added source filename and created/imported/updated timestamp display for saved local profiles.
+- Added read-only high-level comparison between two saved local profiles.
+- Added Diagnostics local profile storage status.
+- Added pure helper tests for profile metadata, rename/delete behavior, comparison, missing optional sections, magnetic-axis counting, and empty storage parsing.
+
+Known limitations:
+
+- Local profile persistence depends on Tauri webview browser storage and can be cleared if local app storage is reset.
+- Export writes a JSON backup file locally; it does not write to keyboard hardware.
+- No hardware writes, HID writes, keyboard configuration reads/writes, apply/sync/save-to-device behavior, editors, cloud sync, or user accounts are included.
+
 ## Unreleased - Work Package 2
 
 - Added read-only HID device enumeration through the Rust backend.

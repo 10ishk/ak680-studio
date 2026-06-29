@@ -9,7 +9,7 @@
 **Project type:** Open-source native desktop app  
 **Target device:** AJAZZ AK680 V2  
 **License:** MIT, unless the maintainer chooses another permissive license before first public release  
-**Status:** Work Package 2 read-only HID detection
+**Status:** Work Package 3 local profile manager
 
 AK680 Studio is an unofficial, open-source, lightweight native desktop app for inspecting and eventually configuring the AJAZZ AK680 V2 keyboard.
 
@@ -34,7 +34,7 @@ The long-term app should support:
 - Local backups before device writes
 - Safe, documented hardware operations
 
-Work Packages 1 and 2 are intentionally read-only and do not configure the physical keyboard.
+Work Packages 1, 2, and 3 are intentionally read-only and do not configure the physical keyboard.
 
 ---
 
@@ -155,6 +155,10 @@ For Work Package 2, Codex may implement HID enumeration only. WP2 must not imple
 
 The UI must clearly state that Work Package 2 detection is read-only.
 
+For Work Package 3, Codex may implement local profile persistence, local export, active local profile selection, local rename/delete behavior, and read-only high-level comparison only. WP3 must not implement hardware writes, HID writes, keyboard configuration reads/writes, apply-to-keyboard actions, sync-to-keyboard actions, save-to-device behavior, key remapping editors, RGB editors, rapid trigger editors, SOCD editors, macro editors, firmware flashing, calibration, cloud sync, user accounts, Electron, or embedded AJAZZ website behavior.
+
+The UI must clearly state that profile management is local-only.
+
 Any future hardware-write package must include:
 
 1. Documented command/protocol research
@@ -253,6 +257,64 @@ Add real read-only HID device detection for the AJAZZ AK680 V2 while preserving 
 - Electron wrapper
 - Embedded AJAZZ website
 - Cloud sync
+
+---
+
+## 7b. Work Package 3 Scope
+
+### Goal
+
+Add a local profile manager with local-only persistence, backup/export, active profile selection, rename/delete behavior, and read-only high-level profile comparison while preserving all accepted Work Package 1 and Work Package 2 behavior.
+
+### In Scope
+
+- Save imported valid AK680 V2 profiles locally
+- List saved local profiles
+- Select an active local profile
+- Rename saved profile display names
+- Delete saved profiles with confirmation
+- Export saved profiles as JSON
+- Persist saved profiles across app reload/restart using local-only storage
+- Show local profile ID, display name, original profile name, device ID, source filename, created/imported timestamp, and updated timestamp
+- Read-only high-level comparison between two saved profiles
+- Diagnostics local profile storage status
+- Documentation updates
+
+### Comparison Scope
+
+Comparison may summarize:
+
+- Profile name
+- Device identity
+- `keyList` length and `userKey` count
+- `gameModeInfo`
+- `ledEffect`
+- `macroDataList` count
+- `magneticAxisRT` active count
+- `magneticAxisRTConfig.currentModeName`
+
+### Out of Scope
+
+- Hardware writes
+- HID writes
+- Keyboard configuration reads/writes
+- Applying profiles to keyboard
+- Syncing profiles to keyboard
+- Save-to-device behavior
+- Key remapping editor
+- RGB editor
+- Rapid trigger editor
+- SOCD editor
+- Macro editor
+- Firmware flashing
+- Calibration
+- Cloud sync
+- User accounts
+- Remote upload
+- Database services
+- Installer/release packaging
+- Electron wrapper
+- Embedded AJAZZ website
 
 ---
 

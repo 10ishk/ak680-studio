@@ -33,6 +33,12 @@ The supplied sample export wraps most profile data in a top-level `profile` obje
 - OS permissions, driver state, USB mode, and whether the keyboard is connected in wired mode may affect detection.
 - WP2 treats vendor ID `3141` and product ID `32956` as the target match for AJAZZ AK680 V2 detection.
 - Safe displayed metadata is limited to VID, PID, manufacturer string, product string, serial number if available, path if available, and match status.
+- WP3 local profile persistence uses browser `localStorage` in the Tauri webview.
+- Saved local profile metadata includes display name, original profile name, device ID, source filename when available, created/imported timestamp, and updated timestamp.
+- Exported profile backups are JSON generated from the saved raw imported profile data.
+- Profile comparison is read-only and high-level; it summarizes selected sections and counts rather than editing profile data.
+- Local persistence can be cleared by the user, browser storage policy, or webview storage reset.
+- Corrupt local storage is handled by falling back to an empty local profile store and surfacing the storage error.
 - Native HID command framing for safe hardware writes is unknown.
 - Verification behavior after a hardware write is unknown.
 - Backup and restore semantics for device state are unknown.
@@ -45,4 +51,4 @@ The supplied sample export wraps most profile data in a top-level `profile` obje
 - Design a Red Team plan for the smallest possible future hardware write.
 - Require maintainer approval before adding hardware write code.
 
-Work Package 1 performs local JSON inspection only. Work Package 2 adds read-only HID enumeration only. Hardware writes remain out of scope.
+Work Package 1 performs local JSON inspection only. Work Package 2 adds read-only HID enumeration only. Work Package 3 adds local-only profile storage, export, active selection, rename/delete, and read-only comparison. Hardware writes, cloud sync, remote upload, databases, and user accounts remain out of scope.

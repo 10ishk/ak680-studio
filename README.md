@@ -1,6 +1,6 @@
 # AK680 Studio
 
-AK680 Studio is an unofficial, open-source native desktop app for inspecting AJAZZ AK680 V2 profile exports and detecting the target keyboard locally. Work Package 2 adds read-only HID device detection while preserving the Work Package 1 read-only profile inspector.
+AK680 Studio is an unofficial, open-source native desktop app for inspecting AJAZZ AK680 V2 profile exports, detecting the target keyboard locally, and managing saved local profile backups. Work Package 3 adds a local-only profile manager while preserving the Work Package 1 profile inspector and Work Package 2 read-only HID detection.
 
 This project is not affiliated with, endorsed by, or maintained by AJAZZ. The official vendor tooling remains the supported configuration path until native hardware-write behavior is researched, documented, and reviewed in a future work package.
 
@@ -11,7 +11,7 @@ This project is not affiliated with, endorsed by, or maintained by AJAZZ. The of
 - React
 - TypeScript
 - Tailwind CSS
-- Local-only browser state
+- Local-only browser state and localStorage profile persistence
 
 ## Setup
 
@@ -83,12 +83,42 @@ Notes:
 - OS permissions can affect HID enumeration.
 - Detection is local and read-only.
 
+## Work Package 3 Scope
+
+Included:
+
+- Local profile manager backed by browser `localStorage`.
+- Save imported valid AK680 V2 profiles locally.
+- List saved local profiles.
+- Select an active local profile.
+- Rename saved profile display names.
+- Delete saved profiles with confirmation.
+- Export saved profiles as JSON backups.
+- Show source filename and created/imported/updated timestamps.
+- Read-only high-level comparison between two saved profiles.
+- Diagnostics storage status.
+
+Notes:
+
+- Saved profiles remain on this machine only.
+- Export creates a JSON file from the saved profile data.
+- Comparison summarizes profile metadata and high-level section differences only.
+- No cloud sync, remote upload, database, or user account is used.
+
 Out of scope:
 
 - Hardware writes
 - HID write/send commands
 - HID feature report send behavior
 - Keyboard configuration read/write commands
+- Applying profiles to keyboard
+- Syncing profiles to keyboard
+- Save-to-device behavior
+- Key remapping editor
+- RGB editor
+- Rapid trigger editor
+- SOCD editor
+- Macro editor
 - Keymap writes
 - RGB writes
 - Rapid trigger writes
@@ -97,8 +127,9 @@ Out of scope:
 - Firmware flashing
 - Calibration
 - Cloud login, sync, upload, or database features
+- User accounts
 - Electron or embedded AJAZZ website wrappers
 
 ## Safety
 
-Work Packages 1 and 2 are read-only. The app does not include hardware write commands, save-to-device actions, apply-to-device actions, HID feature report sends, keyboard configuration writes, firmware flashing, calibration, or background device sync.
+Work Packages 1 through 3 are read-only with respect to keyboard hardware. The app does not include hardware write commands, save-to-device actions, apply-to-device actions, sync-to-device actions, HID feature report sends, keyboard configuration writes, firmware flashing, calibration, or background device sync.

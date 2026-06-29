@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   Activity,
@@ -11,6 +11,7 @@ import {
   ListChecks,
   PanelsTopLeft,
   ShieldCheck,
+  SquareStack,
   Workflow,
 } from "lucide-react";
 import sampleProfile from "../fixtures/ak680-profile.sample.json";
@@ -27,12 +28,24 @@ import {
   parseImportedProfile,
   summarizeArray,
 } from "./lib/profileValidation";
+import {
+  LOCAL_PROFILE_STORAGE_KEY,
+  compareSavedProfiles,
+  createSavedLocalProfile,
+  deleteSavedProfile,
+  emptyLocalProfileStore,
+  parseLocalProfileStore,
+  renameSavedProfile,
+  serializeLocalProfileStore,
+} from "./lib/localProfiles";
 import type { HidDetectionResult, HidDetectionState } from "./types/hid";
+import type { LocalProfileStorageState, LocalProfileStore, SavedLocalProfile } from "./types/localProfile";
 import type { AjazzProfile, ImportedProfile, KeyboardKey } from "./types/profile";
 
 type Screen =
   | "dashboard"
   | "device"
+  | "profiles"
   | "import"
   | "inspector"
   | "layout"
@@ -46,6 +59,7 @@ const sampleImport = parseImportedProfile(JSON.stringify(sampleProfile), "ak680-
 const navigation: Array<{ id: Screen; label: string; icon: typeof Home }> = [
   { id: "dashboard", label: "Dashboard", icon: Home },
   { id: "device", label: "Device", icon: Cpu },
+  { id: "profiles", label: "Profiles", icon: SquareStack },
   { id: "import", label: "Profile Import", icon: FileJson },
   { id: "inspector", label: "Profile Inspector", icon: PanelsTopLeft },
   { id: "layout", label: "Keyboard Layout", icon: Keyboard },
@@ -59,7 +73,24 @@ export default function App() {
   const [activeScreen, setActiveScreen] = useState<Screen>("dashboard");
   const [importedProfile, setImportedProfile] = useState<ImportedProfile>(sampleImport);
   const [hidDetection, setHidDetection] = useState<HidDetectionState>({ status: "idle" });
+  const [localProfileStore, setLocalProfileStore] = useState<LocalProfileStore>(() => loadInitialLocalProfileStore().store);
+  const [storageError, setStorageError] = useState<string | undefined>(() => loadInitialLocalProfileStore().error);
   const profile = importedProfile.validation.valid ? importedProfile.profile : undefined;
+  const localProfileStorage: LocalProfileStorageState = {
+    profiles: localProfileStore.profiles,
+    activeProfileId: localProfileStore.activeProfileId,
+    storageType: "Browser localStorage",
+    lastStorageError: storageError,
+  };
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCAL_PROFILE_STORAGE_KEY, serializeLocalProfileStore(localProfileStore));
+      setStorageError(undefined);
+    } catch (error) {
+      setStorageError(error instanceof Error ? error.message : String(error));
+    }
+  }, [localProfileStore]);
 
   async function refreshHidDetection() {
     setHidDetection((current) => ({ status: "checking", result: current.result }));
@@ -73,6 +104,70 @@ export default function App() {
         error: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+
+  function saveImportedProfileLocally() {
+    if (!importedProfile.validation.valid) {
+      return;
+    }
+
+    const savedProfile = createSavedLocalProfile(importedProfile);
+    setLocalProfileStore((current) => ({
+      version: 1,
+      profiles: [savedProfile, ...current.profiles],
+      activeProfileId: current.activeProfileId ?? savedProfile.id,
+    }));
+  }
+
+  function selectActiveLocalProfile(profileId: string) {
+    setLocalProfileStore((current) => ({ ...current, activeProfileId: profileId }));
+  }
+
+  function renameLocalProfile(profileId: string) {
+    const profileToRename = localProfileStore.profiles.find((profile) => profile.id === profileId);
+    if (!profileToRename) {
+      return;
+    }
+
+    const nextName = window.prompt("Rename local profile display name", profileToRename.displayName);
+    if (nextName === null) {
+      return;
+    }
+
+    setLocalProfileStore((current) => ({
+      ...current,
+      profiles: renameSavedProfile(current.profiles, profileId, nextName),
+    }));
+  }
+
+  function deleteLocalProfile(profileId: string) {
+    const profileToDelete = localProfileStore.profiles.find((profile) => profile.id === profileId);
+    if (!profileToDelete) {
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete local profile "${profileToDelete.displayName}"?`);
+    if (!confirmed) {
+      return;
+    }
+
+    setLocalProfileStore((current) => deleteSavedProfile(current, profileId));
+  }
+
+  function exportLocalProfile(profileId: string) {
+    const profileToExport = localProfileStore.profiles.find((profile) => profile.id === profileId);
+    if (!profileToExport) {
+      return;
+    }
+
+    const json = JSON.stringify(profileToExport.raw, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${sanitizeFilename(profileToExport.displayName)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -112,10 +207,31 @@ export default function App() {
         </aside>
 
         <main className="min-w-0 p-5 lg:p-8">
-          {activeScreen === "dashboard" && <Dashboard profile={profile} importedProfile={importedProfile} />}
+          {activeScreen === "dashboard" && (
+            <Dashboard
+              profile={profile}
+              importedProfile={importedProfile}
+              localProfileStorage={localProfileStorage}
+            />
+          )}
           {activeScreen === "device" && <Device hidDetection={hidDetection} onRefresh={refreshHidDetection} />}
+          {activeScreen === "profiles" && (
+            <Profiles
+              importedProfile={importedProfile}
+              localProfileStorage={localProfileStorage}
+              onSaveImported={saveImportedProfileLocally}
+              onSelectActive={selectActiveLocalProfile}
+              onRename={renameLocalProfile}
+              onDelete={deleteLocalProfile}
+              onExport={exportLocalProfile}
+            />
+          )}
           {activeScreen === "import" && (
-            <ProfileImport importedProfile={importedProfile} setImportedProfile={setImportedProfile} />
+            <ProfileImport
+              importedProfile={importedProfile}
+              setImportedProfile={setImportedProfile}
+              onSaveImported={saveImportedProfileLocally}
+            />
           )}
           {activeScreen === "inspector" && <ProfileInspector profile={profile} importedProfile={importedProfile} />}
           {activeScreen === "layout" && <KeyboardLayout profile={profile} />}
@@ -123,7 +239,11 @@ export default function App() {
           {activeScreen === "rapid-trigger" && <RapidTrigger profile={profile} />}
           {activeScreen === "macros" && <Macros profile={profile} />}
           {activeScreen === "diagnostics" && (
-            <Diagnostics importedProfile={importedProfile} hidDetection={hidDetection} />
+            <Diagnostics
+              importedProfile={importedProfile}
+              hidDetection={hidDetection}
+              localProfileStorage={localProfileStorage}
+            />
           )}
         </main>
       </div>
@@ -155,11 +275,14 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Dashboard({
   profile,
   importedProfile,
+  localProfileStorage,
 }: {
   profile?: AjazzProfile;
   importedProfile: ImportedProfile;
+  localProfileStorage: LocalProfileStorageState;
 }) {
   const identity = profile ? getDeviceIdentity(profile) : undefined;
+  const activeProfile = localProfileStorage.profiles.find((saved) => saved.id === localProfileStorage.activeProfileId);
   return (
     <>
       <PageHeader title="Dashboard" eyebrow="Native app foundation" />
@@ -172,6 +295,8 @@ function Dashboard({
             { label: "Source", value: importedProfile.sourceName },
             { label: "User key overrides", value: countUserKeys(profile) },
             { label: "SOCD keys", value: countSocdKeys(profile) },
+            { label: "Saved local profiles", value: localProfileStorage.profiles.length },
+            { label: "Active local profile", value: activeProfile?.displayName ?? "None selected" },
           ]}
         />
       </Section>
@@ -180,8 +305,8 @@ function Dashboard({
           <div className="flex items-start gap-3">
             <ShieldCheck className="mt-1 h-5 w-5 text-moss" />
             <p className="text-sm leading-6 text-slate-700">
-              This build imports local JSON and displays profile information only. It has no hardware write path, no
-              cloud sync, no firmware tools, and no embedded vendor website.
+              This build imports local JSON, stores saved profiles locally, and displays profile information only. It
+              has no hardware write path, no cloud sync, no firmware tools, and no embedded vendor website.
             </p>
           </div>
         </div>
@@ -262,9 +387,11 @@ function Device({
 function ProfileImport({
   importedProfile,
   setImportedProfile,
+  onSaveImported,
 }: {
   importedProfile: ImportedProfile;
   setImportedProfile: (profile: ImportedProfile) => void;
+  onSaveImported: () => void;
 }) {
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -288,8 +415,274 @@ function ProfileImport({
           <input type="file" accept="application/json,.json" onChange={handleFileChange} className="mt-4 block text-sm" />
         </label>
       </Section>
+      <Section title="Local Profile Save">
+        <div className="rounded border border-line bg-white p-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="font-semibold text-ink">Save valid import locally</p>
+              <p className="mt-1 text-sm text-slate-600">
+                Saved profiles stay in browser localStorage on this machine.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onSaveImported}
+              disabled={!importedProfile.validation.valid}
+              className="inline-flex items-center justify-center rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Save Imported Profile Locally
+            </button>
+          </div>
+        </div>
+      </Section>
       <ValidationPanel importedProfile={importedProfile} />
     </>
+  );
+}
+
+function Profiles({
+  importedProfile,
+  localProfileStorage,
+  onSaveImported,
+  onSelectActive,
+  onRename,
+  onDelete,
+  onExport,
+}: {
+  importedProfile: ImportedProfile;
+  localProfileStorage: LocalProfileStorageState;
+  onSaveImported: () => void;
+  onSelectActive: (profileId: string) => void;
+  onRename: (profileId: string) => void;
+  onDelete: (profileId: string) => void;
+  onExport: (profileId: string) => void;
+}) {
+  const [leftCompareId, setLeftCompareId] = useState("");
+  const [rightCompareId, setRightCompareId] = useState("");
+  const savedProfiles = localProfileStorage.profiles;
+  const activeProfile = savedProfiles.find((profile) => profile.id === localProfileStorage.activeProfileId);
+  const leftProfile = savedProfiles.find((profile) => profile.id === leftCompareId);
+  const rightProfile = savedProfiles.find((profile) => profile.id === rightCompareId);
+  const comparisonRows = leftProfile && rightProfile ? compareSavedProfiles(leftProfile, rightProfile) : [];
+
+  useEffect(() => {
+    if (!leftCompareId && savedProfiles[0]) {
+      setLeftCompareId(savedProfiles[0].id);
+    }
+    if (!rightCompareId && savedProfiles[1]) {
+      setRightCompareId(savedProfiles[1].id);
+    }
+  }, [leftCompareId, rightCompareId, savedProfiles]);
+
+  return (
+    <>
+      <PageHeader title="Profiles" eyebrow="Local profile manager" />
+      <Section title="Save Current Import">
+        <div className="rounded border border-line bg-white p-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="font-semibold text-ink">
+                {importedProfile.validation.valid ? importedProfile.profile.profileName : "No valid AK680 V2 import"}
+              </p>
+              <p className="mt-1 text-sm text-slate-600">
+                Source: {importedProfile.sourceName}. Local storage only, no account or remote upload.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onSaveImported}
+              disabled={!importedProfile.validation.valid}
+              className="inline-flex items-center justify-center rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Save Imported Profile Locally
+            </button>
+          </div>
+        </div>
+      </Section>
+      <Section title="Saved Local Profiles">
+        {savedProfiles.length === 0 ? (
+          <EmptyState message="No local profiles saved yet. Import a valid AK680 V2 profile and save it locally." />
+        ) : (
+          <div className="space-y-3">
+            {savedProfiles.map((savedProfile) => (
+              <SavedProfileCard
+                key={savedProfile.id}
+                savedProfile={savedProfile}
+                active={savedProfile.id === localProfileStorage.activeProfileId}
+                onSelectActive={onSelectActive}
+                onRename={onRename}
+                onDelete={onDelete}
+                onExport={onExport}
+              />
+            ))}
+          </div>
+        )}
+      </Section>
+      <Section title="Active Local Profile">
+        <InfoGrid
+          items={[
+            { label: "Active profile", value: activeProfile?.displayName ?? "None selected" },
+            { label: "Storage type", value: localProfileStorage.storageType },
+            { label: "Saved profile count", value: savedProfiles.length },
+            { label: "Last storage error", value: localProfileStorage.lastStorageError ?? "None" },
+          ]}
+        />
+      </Section>
+      <Section title="Read-Only Profile Comparison">
+        {savedProfiles.length < 2 ? (
+          <EmptyState message="Save at least two local profiles to compare them." />
+        ) : (
+          <div className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-2">
+              <ProfileSelect
+                label="Left profile"
+                value={leftCompareId}
+                profiles={savedProfiles}
+                onChange={setLeftCompareId}
+              />
+              <ProfileSelect
+                label="Right profile"
+                value={rightCompareId}
+                profiles={savedProfiles}
+                onChange={setRightCompareId}
+              />
+            </div>
+            {leftProfile && rightProfile ? (
+              <ComparisonTable rows={comparisonRows} />
+            ) : (
+              <EmptyState message="Choose two saved local profiles to view a comparison." />
+            )}
+          </div>
+        )}
+      </Section>
+    </>
+  );
+}
+
+function SavedProfileCard({
+  savedProfile,
+  active,
+  onSelectActive,
+  onRename,
+  onDelete,
+  onExport,
+}: {
+  savedProfile: SavedLocalProfile;
+  active: boolean;
+  onSelectActive: (profileId: string) => void;
+  onRename: (profileId: string) => void;
+  onDelete: (profileId: string) => void;
+  onExport: (profileId: string) => void;
+}) {
+  return (
+    <div className="rounded border border-line bg-white p-4">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="break-words text-lg font-bold text-ink">{savedProfile.displayName}</h3>
+            {active && (
+              <span className="rounded border border-moss/40 bg-moss/10 px-2 py-1 text-xs font-semibold uppercase text-moss">
+                Active local
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-slate-600">Original profile: {savedProfile.originalProfileName}</p>
+          <p className="mt-1 text-sm text-slate-600">Device: {savedProfile.deviceId || "Unknown"}</p>
+          <p className="mt-1 text-sm text-slate-600">
+            Source: {savedProfile.sourceFilename || "Not available"}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="rounded border border-line px-3 py-2 text-sm" onClick={() => onSelectActive(savedProfile.id)}>
+            Set Active
+          </button>
+          <button type="button" className="rounded border border-line px-3 py-2 text-sm" onClick={() => onRename(savedProfile.id)}>
+            Rename
+          </button>
+          <button type="button" className="rounded border border-line px-3 py-2 text-sm" onClick={() => onExport(savedProfile.id)}>
+            Export JSON
+          </button>
+          <button
+            type="button"
+            className="rounded border border-red-300 px-3 py-2 text-sm text-red-700"
+            onClick={() => onDelete(savedProfile.id)}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <Timestamp label="Created" value={savedProfile.createdAt} />
+        <Timestamp label="Imported" value={savedProfile.importedAt} />
+        <Timestamp label="Updated" value={savedProfile.updatedAt} />
+      </div>
+    </div>
+  );
+}
+
+function Timestamp({ label, value }: { label: string; value?: string }) {
+  return (
+    <div className="rounded border border-line bg-cloud p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-moss">{label}</p>
+      <p className="mt-1 break-words text-sm text-slate-700">{formatTimestamp(value)}</p>
+    </div>
+  );
+}
+
+function ProfileSelect({
+  label,
+  value,
+  profiles,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  profiles: SavedLocalProfile[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block rounded border border-line bg-white p-4">
+      <span className="text-sm font-semibold text-ink">{label}</span>
+      <select
+        className="mt-2 w-full rounded border border-line bg-white px-3 py-2 text-sm"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        <option value="">Choose a local profile</option>
+        {profiles.map((profile) => (
+          <option key={profile.id} value={profile.id}>
+            {profile.displayName}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function ComparisonTable({ rows }: { rows: ReturnType<typeof compareSavedProfiles> }) {
+  return (
+    <div className="overflow-x-auto rounded border border-line bg-white">
+      <table className="min-w-full border-collapse text-left text-sm">
+        <thead className="bg-cloud text-xs uppercase tracking-wide text-moss">
+          <tr>
+            <th className="border-b border-line px-3 py-3">Summary</th>
+            <th className="border-b border-line px-3 py-3">Left</th>
+            <th className="border-b border-line px-3 py-3">Right</th>
+            <th className="border-b border-line px-3 py-3">Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.label}>
+              <td className="border-b border-line px-3 py-3 font-semibold">{row.label}</td>
+              <td className="max-w-sm break-words border-b border-line px-3 py-3">{row.left}</td>
+              <td className="max-w-sm break-words border-b border-line px-3 py-3">{row.right}</td>
+              <td className="border-b border-line px-3 py-3">{row.status === "same" ? "Same" : "Different"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -459,12 +852,15 @@ function Macros({ profile }: { profile?: AjazzProfile }) {
 function Diagnostics({
   importedProfile,
   hidDetection,
+  localProfileStorage,
 }: {
   importedProfile: ImportedProfile;
   hidDetection: HidDetectionState;
+  localProfileStorage: LocalProfileStorageState;
 }) {
   const profile = importedProfile.validation.valid ? importedProfile.profile : undefined;
   const hidStatus = getHidStatusText(hidDetection);
+  const activeProfile = localProfileStorage.profiles.find((saved) => saved.id === localProfileStorage.activeProfileId);
   const safetyItems = useMemo(
     () => [
       "No hardware write commands",
@@ -479,6 +875,7 @@ function Diagnostics({
       "No embedded AJAZZ website",
       "No Electron wrapper",
       "HID enumeration only",
+      "Local profile storage only",
     ],
     [],
   );
@@ -506,6 +903,18 @@ function Diagnostics({
             { label: "Target VID", value: TARGET_VID },
             { label: "Target PID", value: TARGET_PID },
             { label: "Last error", value: hidDetection.status === "error" ? hidDetection.error : "None" },
+          ]}
+        />
+      </Section>
+      <Section title="Local Profile Storage">
+        <InfoGrid
+          items={[
+            { label: "Storage type", value: localProfileStorage.storageType },
+            { label: "Saved profile count", value: localProfileStorage.profiles.length },
+            { label: "Active local profile", value: activeProfile?.displayName ?? "None selected" },
+            { label: "Last storage error", value: localProfileStorage.lastStorageError ?? "None" },
+            { label: "Persistence", value: "Browser localStorage on this machine" },
+            { label: "Remote services", value: "Not used" },
           ]}
         />
       </Section>
@@ -612,4 +1021,35 @@ function getKeyWidth(className?: string) {
   if (width >= 22) return "w-24";
   if (width >= 18) return "w-20";
   return "w-14";
+}
+
+function loadInitialLocalProfileStore(): { store: LocalProfileStore; error?: string } {
+  try {
+    return {
+      store: parseLocalProfileStore(localStorage.getItem(LOCAL_PROFILE_STORAGE_KEY)),
+    };
+  } catch (error) {
+    return {
+      store: emptyLocalProfileStore(),
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+function formatTimestamp(value?: string) {
+  if (!value) {
+    return "Not available";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Not available";
+  }
+
+  return date.toLocaleString();
+}
+
+function sanitizeFilename(value: string) {
+  const sanitized = value.trim().replace(/[^a-z0-9-_]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+  return sanitized || "ak680-profile";
 }

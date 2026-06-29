@@ -7,6 +7,7 @@
 - Updated the Device screen with a refresh detection action, detected/not-detected/error states, and safe HID metadata display.
 - Updated Diagnostics with the last HID detection status, enumerated device count, and error reporting.
 - Added Rust tests for target VID/PID matching logic.
+- Passed Red Team source/docs QA for Work Package 2. Red Team did not independently run local build/test commands.
 
 Known limitations:
 

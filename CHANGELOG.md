@@ -11,6 +11,7 @@
 - Improved local import/export success and error messages.
 - Updated Diagnostics with schema version, storage health, and last backup/import status.
 - Added pure helper tests for backup validation, merge/replace restore behavior, duplicate handling, and corrupt/incompatible storage handling.
+- Passed Red Team source/docs QA for Work Package 4. Red Team did not independently run local build/test commands.
 
 Known limitations:
 

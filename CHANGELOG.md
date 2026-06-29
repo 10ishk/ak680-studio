@@ -9,6 +9,7 @@
 - Added export fields confirming no Rust controlled-read command, no Tauri controlled-read invoke, no HID report send, and no fake response bytes.
 - Updated RESEARCH_NOTES.md, README.md, and PROJECT_PLAYBOOK.md with WP10 Outcome B scope and GPL boundary.
 - Added pure helper tests for Outcome B identity, disabled gates, missing evidence, and export shape.
+- Passed Red Team QA for Work Package 10.
 
 Known limitations:
 

@@ -14,6 +14,7 @@
 - Changed the project license from MIT to Apache-2.0.
 - Added license transition guidance: earlier versions of this project may have been distributed under MIT. Starting from this WP5 license update, current and future versions are licensed under Apache-2.0.
 - Documented that GPL-3.0 research repositories must not be copied and may be used only for behavioral/protocol research unless the whole project is explicitly relicensed later.
+- Passed Red Team re-check for Work Package 5 after stale visible WP4 UI copy was replaced with public-alpha wording.
 
 Known limitations:
 

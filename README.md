@@ -12,6 +12,7 @@ AK680 Studio is local-only and read-only with respect to keyboard hardware.
 - Saved profiles and backups stay on this machine.
 - Local editor changes affect exported or saved local profile JSON only.
 - Dry-run write safety plans are previews only and send no packets.
+- Controlled Read Experiment is a disabled safety harness only until an exact safe query is justified.
 - HID detection enumerates safe metadata only.
 - No hardware writes are implemented.
 - No apply, sync, save-to-device, firmware flashing, calibration, cloud sync, user account, remote upload, or database feature is included.
@@ -37,6 +38,7 @@ AK680 Studio is local-only and read-only with respect to keyboard hardware.
 - Write Safety / Dry-Run Planner for abstract original-vs-edited operation summaries.
 - Device compatibility and safety checklist with backup-before-write future gate.
 - Local dry-run plan export as JSON.
+- Controlled Read Experiment harness under Protocol Research with manual gating, target path/interface selection, disabled execution state, and local status export.
 - Protocol Research screen for safe HID metadata inspection and local diagnostics snapshot export.
 - Diagnostics and About screens with public-alpha safety status.
 
@@ -71,6 +73,24 @@ The planner includes a compatibility and safety checklist for AK680 V2 VID/PID d
 Dry-run export creates a local JSON planning file with timestamp, profile summaries, validation status, abstract operations, checklist, protocol assumptions, and a no-packets-sent statement.
 
 The planner does not generate real HID packets, command frames, report payloads, endpoint instructions, or executable hardware commands. Backup status is a future safety gate only; it does not unlock writing in WP8. Apply/write/sync/save-to-device execution is absent or disabled and marked not implemented.
+
+## Controlled Read Experiment
+
+The Protocol Research screen includes a Controlled Read Experiment harness for future manual opt-in HID read/query research.
+
+Current WP9 status: command execution is disabled/not implemented. Current project research notes do not document an exact safe query, so AK680 Studio does not send any controlled read/query command in WP9.
+
+The harness still models the required future safety gates:
+
+- AK680 V2 detection by VID `3141` and PID `32956`
+- Exact selected matching HID path/interface
+- Explicit user confirmation before any future implemented attempt
+- One known read/query only, never a command list
+- No automatic execution on app launch or screen open
+- No fuzzing, brute forcing, command scanning, background polling, or continuous monitoring
+- Local JSON export of the disabled/status result
+
+This is not write support. It does not change keyboard settings, apply profiles, sync profiles, save to device, flash firmware, calibrate hardware, or upload data remotely.
 
 ## Protocol Research
 
@@ -189,6 +209,7 @@ Report unsafe hardware-control behavior, accidental write paths, or security iss
 - Hardware writes
 - HID write/send commands
 - Unknown HID command packets
+- Fuzzing, brute forcing, command scanning, background polling, or continuous monitoring
 - Keyboard configuration reads/writes
 - Applying profiles to keyboard
 - Syncing profiles to keyboard

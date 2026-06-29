@@ -53,11 +53,16 @@ The supplied sample export wraps most profile data in a top-level `profile` obje
 - WP6 safe metadata includes VID, PID, path, manufacturer, product, serial when available, usage page, usage, interface number, and release number when available from `hidapi`.
 - WP6 likely research interface inference is cautious and based only on read-only metadata count.
 - WP6 protocol diagnostics snapshots are local JSON exports containing safe metadata, profile summaries, assumptions, and safety notes.
+- WP9 Controlled Read Experiment is a disabled UI/safety harness only. Command execution is disabled pending safe justification because these research notes do not document an exact known safe AK680 V2 read/query.
+- The WP9 harness requires AK680 V2 VID/PID detection and exact selected matching path/interface before any future implemented query could run, but no query command is currently implemented.
+- WP9 status exports are local JSON only and may document disabled/not-implemented state without fabricating response bytes.
 - USB/wired mode is likely required for useful AK680 V2 HID enumeration.
 - Bluetooth configuration is not supported.
 - AK680 V2 is treated as proprietary HID, not QMK/VIA.
 - GPL-3.0 repositories may be studied only for behavior/protocol understanding; do not copy GPL source code, comments, structures, constants, or packet code into this Apache-2.0 project.
 - Native HID command framing for safe hardware writes is unknown.
+- Native HID command framing for safe controlled reads is unknown.
+- No exact safe HID read/query command has been justified for AK680 Studio.
 - Verification behavior after a hardware write is unknown.
 - Backup and restore semantics for device state are unknown.
 - Firmware flashing and calibration protocols are unknown and out of scope.
@@ -67,6 +72,8 @@ The supplied sample export wraps most profile data in a top-level `profile` obje
 - Document the read protocol before any hardware interaction is attempted.
 - Identify a safe backup format before any write feature is proposed.
 - Design a Red Team plan for the smallest possible future hardware write.
+- Identify and document one exact safe read/query command before enabling any controlled command execution.
+- Keep future read/query work manual opt-in, single-command only, path-gated, confirmed, and timeout-limited.
 - Require maintainer approval before adding hardware write code.
 
-Work Package 1 performs local JSON inspection only. Work Package 2 adds read-only HID enumeration only. Work Package 3 adds local-only profile storage, export, active selection, rename/delete, and read-only comparison. Work Package 4 hardens local-only profile library backup export/import and storage recovery. Work Package 5 prepares public alpha docs, safety messaging, templates, and check-only CI. Work Package 6 adds read-only protocol research metadata inspection and local diagnostics snapshots. Hardware writes, unknown HID command packets, keyboard configuration reads/writes, cloud sync, remote upload, databases, release publishing, and user accounts remain out of scope.
+Work Package 1 performs local JSON inspection only. Work Package 2 adds read-only HID enumeration only. Work Package 3 adds local-only profile storage, export, active selection, rename/delete, and read-only comparison. Work Package 4 hardens local-only profile library backup export/import and storage recovery. Work Package 5 prepares public alpha docs, safety messaging, templates, and check-only CI. Work Package 6 adds read-only protocol research metadata inspection and local diagnostics snapshots. Work Package 7 adds local-only profile JSON editing. Work Package 8 adds dry-run write safety planning without real packets. Work Package 9 adds a disabled controlled read experiment harness only. Hardware writes, unknown HID command packets, keyboard configuration reads/writes, cloud sync, remote upload, databases, release publishing, and user accounts remain out of scope.

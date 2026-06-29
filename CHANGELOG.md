@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased - Work Package 9
+
+- Added a Controlled Read Experiment section under Protocol Research.
+- Implemented harness-only disabled state because current project research notes do not justify an exact safe AK680 V2 read/query command.
+- Added AK680 V2 VID/PID detection and exact selected matching path/interface gates.
+- Added experimental read/query-only warning copy covering disabled execution, USB/wired mode, no setting changes, no automatic execution, and no unplugging during any future experiment.
+- Added disabled/not-implemented run state and local JSON export of controlled read status/result.
+- Added safe status/result display with status, timestamp, response length, hex bytes where applicable, and message.
+- Updated Diagnostics with controlled read experiment status.
+- Updated RESEARCH_NOTES.md, README.md, and PROJECT_PLAYBOOK.md with WP9 disabled-harness scope and safety boundaries.
+- Added pure helper tests for gating, selected path/interface requirement, disabled state, hex formatting, and export shape.
+
+Known limitations:
+
+- No HID read/query command is implemented in WP9.
+- Command execution remains disabled pending safe query justification.
+- No keyboard setting writes, apply/sync/save-to-device behavior, unknown HID commands, fuzzing, brute forcing, command scanning, background polling, firmware flashing, calibration, cloud sync, remote upload, database services, release publishing, or user accounts are included.
+
 ## Unreleased - Work Package 8
 
 - Added a Write Safety / Dry-Run Planner screen for future hardware-write planning without sending anything to the keyboard.

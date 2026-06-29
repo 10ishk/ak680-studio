@@ -9,6 +9,7 @@ export const PROTOCOL_ASSUMPTIONS = [
   "Bluetooth configuration is not supported.",
   "The AK680 V2 protocol is treated as proprietary HID, not QMK/VIA.",
   "Future writes require a separate work package and Red Team plan.",
+  "Controlled read command execution is disabled until one exact safe query is justified.",
   "GPL-3.0 protocol repositories may be studied for behavior only; do not copy code.",
 ];
 
@@ -18,6 +19,7 @@ export const PROTOCOL_SAFETY_STATUS = [
   "No keyboard configuration writes are implemented.",
   "No unknown HID command packets are sent.",
   "Only existing HID enumeration metadata is displayed or exported.",
+  "Controlled Read Experiment is a disabled safety harness only.",
 ];
 
 export interface ProtocolMetadataSummary {

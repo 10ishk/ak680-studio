@@ -64,6 +64,12 @@ import {
 } from "./lib/localEditor";
 import { createDryRunExport, createDryRunPlan, summarizeOperations } from "./lib/dryRunPlanner";
 import {
+  createControlledReadExperimentState,
+  createControlledReadExport,
+  createDisabledControlledReadResult,
+  getMatchingControlledReadInterfaces,
+} from "./lib/controlledReadExperiment";
+import {
   PROTOCOL_ASSUMPTIONS,
   PROTOCOL_SAFETY_STATUS,
   createProtocolDiagnosticsSnapshot,
@@ -77,6 +83,7 @@ import type { LocalProfileStorageState, LocalProfileStore, SavedLocalProfile } f
 import type { AjazzProfile, ImportedProfile, KeyboardKey } from "./types/profile";
 import type { EditorDiffSummary, EditorValidation, LocalEditorSession } from "./lib/localEditor";
 import type { DryRunPlan } from "./lib/dryRunPlanner";
+import type { ControlledReadExperimentState, ControlledReadResult } from "./lib/controlledReadExperiment";
 
 type Screen =
   | "dashboard"
@@ -124,6 +131,8 @@ export default function App() {
   const [storageError, setStorageError] = useState<string | undefined>(initialLocalProfileLoad.error);
   const [backupMessage, setBackupMessage] = useState<string | undefined>(initialLocalProfileLoad.error);
   const [editorSession, setEditorSession] = useState<LocalEditorSession | undefined>();
+  const [controlledReadSelectedPath, setControlledReadSelectedPath] = useState("");
+  const [controlledReadResult, setControlledReadResult] = useState<ControlledReadResult | undefined>();
   const editorValidation = useMemo(() => validateEditorSession(editorSession), [editorSession]);
   const editorDiff = useMemo(() => createEditorDiffSummary(editorSession), [editorSession]);
   const [storageHealth, setStorageHealth] = useState<LocalProfileStorageState["storageHealth"]>(() =>
@@ -153,6 +162,15 @@ export default function App() {
         protocolAssumptions: PROTOCOL_ASSUMPTIONS,
       }),
     [editorSession, editorValidation, hidDetection, localProfileStorage],
+  );
+  const controlledReadState = useMemo(
+    () =>
+      createControlledReadExperimentState({
+        hidDetection: hidDetection.result,
+        selectedPath: controlledReadSelectedPath || undefined,
+        result: controlledReadResult,
+      }),
+    [controlledReadResult, controlledReadSelectedPath, hidDetection.result],
   );
 
   useEffect(() => {
@@ -397,6 +415,26 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
+  function exportControlledReadStatus() {
+    const exportedStatus = createControlledReadExport({ state: controlledReadState });
+    const json = JSON.stringify(exportedStatus, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ak680-controlled-read-status-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function recordDisabledControlledReadStatus() {
+    setControlledReadResult(
+      createDisabledControlledReadResult({
+        selectedInterface: controlledReadState.selectedInterface,
+      }),
+    );
+  }
+
   return (
     <div className="min-h-screen bg-cloud text-ink">
       <div className="grid min-h-screen lg:grid-cols-[260px_1fr]">
@@ -499,6 +537,11 @@ export default function App() {
               importedProfile={importedProfile}
               hidDetection={hidDetection}
               localProfileStorage={localProfileStorage}
+              controlledReadState={controlledReadState}
+              controlledReadSelectedPath={controlledReadSelectedPath}
+              onControlledReadSelectedPathChange={setControlledReadSelectedPath}
+              onRecordDisabledControlledReadStatus={recordDisabledControlledReadStatus}
+              onExportControlledReadStatus={exportControlledReadStatus}
               onRefresh={refreshHidDetection}
               onExportSnapshot={exportProtocolDiagnosticsSnapshot}
             />
@@ -512,6 +555,7 @@ export default function App() {
               editorValidation={editorValidation}
               editorDiff={editorDiff}
               dryRunPlan={dryRunPlan}
+              controlledReadState={controlledReadState}
             />
           )}
           {activeScreen === "about" && <About />}
@@ -1222,6 +1266,18 @@ function getChecklistClass(status: DryRunPlan["checklist"][number]["status"]) {
   }
 }
 
+function getControlledReadGateClass(status: ControlledReadExperimentState["gates"][number]["status"]) {
+  switch (status) {
+    case "pass":
+      return "border-moss/40 bg-moss/10 text-moss";
+    case "blocked":
+      return "border-red-300 bg-red-50 text-red-700";
+    case "info":
+    default:
+      return "border-line bg-white text-slate-700";
+  }
+}
+
 function getDryRunStatusTitle(plan: DryRunPlan) {
   switch (plan.status) {
     case "ready":
@@ -1775,16 +1831,27 @@ function ProtocolResearch({
   importedProfile,
   hidDetection,
   localProfileStorage,
+  controlledReadState,
+  controlledReadSelectedPath,
+  onControlledReadSelectedPathChange,
+  onRecordDisabledControlledReadStatus,
+  onExportControlledReadStatus,
   onRefresh,
   onExportSnapshot,
 }: {
   importedProfile: ImportedProfile;
   hidDetection: HidDetectionState;
   localProfileStorage: LocalProfileStorageState;
+  controlledReadState: ControlledReadExperimentState;
+  controlledReadSelectedPath: string;
+  onControlledReadSelectedPathChange: (path: string) => void;
+  onRecordDisabledControlledReadStatus: () => void;
+  onExportControlledReadStatus: () => void;
   onRefresh: () => Promise<void>;
   onExportSnapshot: () => void;
 }) {
   const matchingInterfaces = getMatchingResearchInterfaces(hidDetection.result);
+  const controlledReadInterfaces = getMatchingControlledReadInterfaces(hidDetection.result);
   const likelyResearchInterface = inferLikelyResearchInterface(matchingInterfaces);
   const profile = importedProfile.validation.valid ? importedProfile.profile : undefined;
   const activeProfile = localProfileStorage.profiles.find((saved) => saved.id === localProfileStorage.activeProfileId);
@@ -1859,6 +1926,113 @@ function ProtocolResearch({
             { label: "Last HID status", value: getHidStatusText(hidDetection).title },
           ]}
         />
+      </Section>
+      <Section title="Controlled Read Experiment">
+        <div className="space-y-4">
+          <div className="rounded border border-copper/40 bg-copper/10 p-5">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
+              <div>
+                <p className="font-bold text-ink">Experimental read/query harness, disabled pending safe justification</p>
+                <p className="mt-1 text-sm leading-6 text-slate-700">
+                  This area is for one future controlled manual opt-in HID read/query experiment. Current research notes
+                  do not justify an exact safe query, so command execution is not implemented. No setting changes are
+                  intended, nothing runs automatically, USB/wired mode is required for future experiments, and the
+                  keyboard should not be unplugged during any future confirmed experiment.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded border border-line bg-white p-5">
+            <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+              <div>
+                <p className="font-semibold text-ink">Target path/interface selection</p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  A future implemented read/query would require AK680 V2 VID/PID detection and an exact selected
+                  matching HID path/interface. This harness does not guess across multiple interfaces.
+                </p>
+                <label className="mt-3 block text-sm font-semibold text-ink">
+                  Matching AK680 V2 interface
+                  <select
+                    className="mt-2 w-full rounded border border-line bg-white px-3 py-2 text-sm"
+                    value={controlledReadSelectedPath}
+                    onChange={(event) => onControlledReadSelectedPathChange(event.target.value)}
+                  >
+                    <option value="">Select a matching path/interface</option>
+                    {controlledReadInterfaces.map((device) => (
+                      <option key={device.path ?? `${device.vendorId}-${device.productId}`} value={device.path ?? ""}>
+                        {device.path || "Path not available"} | interface {formatOptionalMetadata(device.interfaceNumber)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div>
+                <p className="font-semibold text-ink">Harness status</p>
+                <InfoGrid
+                  items={[
+                    { label: "Implementation", value: "Disabled / not implemented" },
+                    { label: "Last status", value: controlledReadState.runStatus },
+                    { label: "Selected target", value: controlledReadState.selectedInterface?.path ?? "None" },
+                    { label: "Response length", value: controlledReadState.result?.responseLength ?? 0 },
+                    { label: "Keyboard setting writes", value: "Not implemented" },
+                  ]}
+                />
+              </div>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {controlledReadState.gates.map((gate) => (
+                <div key={gate.label} className="rounded border border-line bg-cloud p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-ink">{gate.label}</p>
+                    <span className={`rounded border px-2 py-1 text-xs font-semibold uppercase ${getControlledReadGateClass(gate.status)}`}>
+                      {gate.status}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{gate.detail}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled
+                className="rounded border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 opacity-60"
+                title={controlledReadState.runDisabledReason}
+              >
+                Run Controlled Read: Not Implemented
+              </button>
+              <button
+                type="button"
+                onClick={onRecordDisabledControlledReadStatus}
+                className="rounded border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:bg-cloud"
+              >
+                Record Disabled Status
+              </button>
+              <button
+                type="button"
+                onClick={onExportControlledReadStatus}
+                className="rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss"
+              >
+                Export Controlled Read Status
+              </button>
+            </div>
+            {controlledReadState.result && (
+              <div className="mt-4 rounded border border-line bg-cloud p-4">
+                <p className="text-sm font-semibold text-ink">Last result/status</p>
+                <InfoGrid
+                  items={[
+                    { label: "Status", value: controlledReadState.result.status },
+                    { label: "Timestamp", value: formatTimestamp(controlledReadState.result.timestamp) },
+                    { label: "Response length", value: controlledReadState.result.responseLength },
+                    { label: "Hex bytes", value: controlledReadState.result.responseHex || "None" },
+                    { label: "Message", value: controlledReadState.result.message },
+                  ]}
+                />
+              </div>
+            )}
+          </div>
+        </div>
       </Section>
       <Section title="Protocol Assumptions">
         <ul className="grid gap-2 md:grid-cols-2">
@@ -1944,6 +2118,7 @@ function Diagnostics({
   editorValidation,
   editorDiff,
   dryRunPlan,
+  controlledReadState,
 }: {
   importedProfile: ImportedProfile;
   hidDetection: HidDetectionState;
@@ -1952,6 +2127,7 @@ function Diagnostics({
   editorValidation: EditorValidation;
   editorDiff: EditorDiffSummary;
   dryRunPlan: DryRunPlan;
+  controlledReadState: ControlledReadExperimentState;
 }) {
   const profile = importedProfile.validation.valid ? importedProfile.profile : undefined;
   const hidStatus = getHidStatusText(hidDetection);
@@ -1978,6 +2154,8 @@ function Diagnostics({
       "Protocol Research uses metadata only",
       "Dry-run planner sends no packets",
       "Dry-run execution is blocked",
+      "Controlled read command execution disabled",
+      "No fuzzing or command scanning",
     ],
     [],
   );
@@ -2075,6 +2253,22 @@ function Diagnostics({
             { label: "No packets sent", value: "Confirmed" },
             { label: "Hardware writes", value: "Not implemented" },
             { label: "Execution", value: dryRunPlan.execution.status },
+          ]}
+        />
+      </Section>
+      <Section title="Controlled Read Experiment Status">
+        <InfoGrid
+          items={[
+            { label: "Availability", value: "Harness only" },
+            { label: "Implementation", value: "Disabled / not implemented" },
+            { label: "Target detected", value: hidDetection.result?.targetDetected ? "Yes" : "No" },
+            { label: "Selected path/interface", value: controlledReadState.selectedInterface?.path ?? "None" },
+            { label: "Last run status", value: controlledReadState.runStatus },
+            { label: "Response length", value: controlledReadState.result?.responseLength ?? 0 },
+            { label: "Keyboard setting writes", value: "Not implemented" },
+            { label: "Apply/sync/save-to-device", value: "Not implemented" },
+            { label: "Unknown commands", value: "Not sent" },
+            { label: "Fuzzing/scanning/background polling", value: "Not implemented" },
           ]}
         />
       </Section>

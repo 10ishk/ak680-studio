@@ -9,7 +9,7 @@
 **Project type:** Open-source native desktop app  
 **Target device:** AJAZZ AK680 V2  
 **License:** Apache-2.0
-**Status:** Work Package 8 dry-run write safety planner
+**Status:** Work Package 9 controlled read experiment harness
 
 AK680 Studio is an unofficial, open-source, lightweight native desktop app for inspecting and eventually configuring the AJAZZ AK680 V2 keyboard.
 
@@ -34,7 +34,7 @@ The long-term app should support:
 - Local backups before device writes
 - Safe, documented hardware operations
 
-Work Packages 1, 2, 3, 4, 5, and 6 are intentionally read-only and do not configure the physical keyboard. Work Package 7 adds local profile JSON editing only and still does not configure the physical keyboard. Work Package 8 adds dry-run write safety planning only and cannot execute hardware writes or generate real HID packets.
+Work Packages 1, 2, 3, 4, 5, and 6 are intentionally read-only and do not configure the physical keyboard. Work Package 7 adds local profile JSON editing only and still does not configure the physical keyboard. Work Package 8 adds dry-run write safety planning only and cannot execute hardware writes or generate real HID packets. Work Package 9 adds a controlled read experiment harness only; command execution remains disabled until an exact safe query is justified.
 
 ---
 
@@ -168,6 +168,8 @@ For Work Package 6, Codex may implement a read-only Advanced / Protocol Research
 For Work Package 7, Codex may implement a local-only editor for imported or saved AK680 V2 profile JSON. WP7 may deep-clone a profile for editing, locally edit safe profile data such as key assignment names, RT/actuation values, SOCD/game-mode fields, and lighting fields, show edited-vs-original summaries, validate before local export/save/update, export edited JSON, save as a new local profile, update an existing saved local profile after confirmation, and discard/reset local edits. WP7 must preserve `macroDataList` exactly unless a later package explicitly implements macro editing. WP7 must not implement hardware writes, HID writes, `device.write`, `send_feature_report`, `set_report`, output reports, unknown HID command packets, keyboard configuration reads requiring command packets, keyboard configuration writes, apply-to-keyboard actions, sync-to-keyboard actions, save-to-device behavior, real keymap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 source code/comments/structures/constants/packet code.
 
 For Work Package 8, Codex may implement a Write Safety / Dry-Run Planner screen or section that uses a valid WP7 edited local profile as input, compares original/source vs edited profile data, shows abstract operation summaries by category, represents backup-before-write as a future safety gate, shows a device compatibility/safety checklist, exports a local dry-run planning file, and displays blocked execution status for future hardware-write actions. WP8 must not implement hardware writes, HID writes, `device.write`, `send_feature_report`, `set_report`, output reports, real HID packets, unknown HID command packets, keyboard configuration reads/writes, apply-to-keyboard actions, sync-to-keyboard actions, save-to-device behavior, real keymap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 source code/comments/structures/constants/packet code.
+
+For Work Package 9, Codex may implement a gated Controlled Read Experiment section under Protocol Research / Advanced. If an exact safe query is not justified from current project research notes, Codex must implement a disabled UI/safety harness only. WP9 may require AK680 V2 VID/PID detection, exact selected matching path/interface, warning copy, explicit confirmation modeling, disabled/not-implemented status, structured status/result display, local JSON status export, Diagnostics status, and tests for gating/result/export logic. WP9 must not implement keyboard setting writes, profile apply/sync/save-to-device behavior, key remap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, unknown HID commands, fuzzing, brute forcing, command scanning, multiple command experiments, background polling, continuous monitoring, automatic command execution, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 source code/comments/structures/constants/packet framing/implementation material.
 
 Any future hardware-write package must include:
 
@@ -612,6 +614,75 @@ Add a Write Safety Layer and Dry-Run Planner that prepares for future hardware w
 
 ---
 
+## 7h. Work Package 9 Scope
+
+### Goal
+
+Add the first Controlled Read Experiment area under Protocol Research / Advanced while preserving all accepted Work Package 1 through Work Package 8 behavior.
+
+### Current Outcome
+
+Command execution is disabled/not implemented because current project research notes do not justify an exact safe read/query command. WP9 therefore implements the UI/safety harness only.
+
+### In Scope
+
+- Controlled Read Experiment section under Protocol Research / Advanced
+- Off/disabled by default
+- AK680 V2 VID/PID `3141/32956` detection gate
+- Exact selected matching HID path/interface gate
+- Explicit confirmation requirement modeled for future implemented query
+- Clear experimental read/query-only warnings
+- Disabled/not-implemented command execution state
+- At most one future known read/query experiment; no command list
+- Safe result/status display: status, timestamp, response length, hex bytes where applicable, and message
+- Local JSON export of controlled read status/result
+- Diagnostics controlled read experiment status
+- RESEARCH_NOTES.md documentation of disabled pending safe justification
+- README.md, PROJECT_PLAYBOOK.md, and CHANGELOG.md updates
+- Practical pure logic tests for gating, path selection, disabled result, hex formatting, and export shape
+
+### Out of Scope
+
+- Keyboard setting writes
+- Applying profiles to keyboard
+- Syncing profiles to keyboard
+- Save-to-device behavior
+- Key remap writes
+- RGB writes
+- RT/actuation writes
+- SOCD writes
+- Macro writes
+- Firmware flashing
+- Calibration
+- Unknown HID commands
+- Fuzzing
+- Brute forcing
+- Command scanning
+- Multiple command experiments
+- Background polling
+- Continuous monitoring
+- Automatic command execution on app launch or screen open
+- Command execution without explicit user action
+- Command execution on wrong VID/PID
+- Command execution without selected target interface/path
+- Cloud sync
+- User accounts
+- Remote upload
+- Database services
+- Release publishing
+- Electron wrapper
+- Embedded AJAZZ website
+- Copied GPL-3.0 source code, comments, structures, constants, packet framing, or implementation material
+
+### Design Rules
+
+- If a safe query cannot be justified, command execution must stay disabled.
+- The harness must not fabricate response bytes.
+- The harness must not add Rust or Tauri command execution paths.
+- Future query work must remain one controlled read/query only, run once per explicit confirmed user action, with short timeout and structured success/error/timeout.
+
+---
+
 ## 8. Required Screens
 
 The current app must include these screens:
@@ -629,6 +700,7 @@ The current app must include these screens:
 11. Protocol Research
 12. Local Editor
 13. Write Safety / Dry-Run Planner
+14. Controlled Read Experiment section under Protocol Research
 
 All screens must remain read-only with respect to physical keyboard hardware.
 

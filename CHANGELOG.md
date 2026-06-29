@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased - Work Package 7
+
+- Added a Local Editor screen for imported or saved AK680 V2 profile JSON.
+- Added deep-cloned edit sessions so original imported/saved profile data is preserved until explicit local export/save/update.
+- Added local-only keymap assignment-name editing, RT/actuation editing, SOCD/game-mode editing, and lighting editing where matching profile sections exist.
+- Added edited-vs-original summaries, validation before local export/save/update, edited JSON export, save-as-new local profile, confirmed update of existing saved local profiles, and discard/reset edits.
+- Preserved `macroDataList` exactly; macro editing is not implemented in WP7.
+- Updated Diagnostics with local editor status.
+- Added pure helper tests for editor cloning, mutation isolation, diffing, validation, macro preservation, and edited export shape.
+- Updated README.md and PROJECT_PLAYBOOK.md with WP7 local-editor scope and safety boundaries.
+
+Known limitations:
+
+- The Local Editor changes profile JSON only; it does not apply, sync, or save anything to keyboard hardware.
+- Only selected high-level fields are exposed in the local editor UI.
+- Macro editing is not implemented.
+- No hardware writes, HID writes, unknown HID command packets, keyboard configuration reads/writes, apply/sync/save-to-device behavior, firmware flashing, calibration, cloud sync, remote upload, database services, release publishing, or user accounts are included.
+
 ## Unreleased - Work Package 6
 
 - Added a read-only Protocol Research screen for safe AK680 V2 HID metadata inspection.

@@ -12,6 +12,7 @@ import {
   ListChecks,
   PanelsTopLeft,
   ShieldCheck,
+  SlidersHorizontal,
   SquareStack,
   Workflow,
 } from "lucide-react";
@@ -45,6 +46,22 @@ import {
   serializeLocalProfileStore,
 } from "./lib/localProfiles";
 import {
+  createEditedImportedProfile,
+  createEditedRaw,
+  createEditorDiffSummary,
+  createEditorSessionFromImported,
+  createEditorSessionFromSaved,
+  getEditableKeyEntries,
+  getFirstEditableMagneticAxis,
+  resetEditorSession,
+  setEditorProfileName,
+  setFirstMagneticAxisValue,
+  setGameModeValue,
+  setKeyUserAssignment,
+  setLightingValue,
+  validateEditorSession,
+} from "./lib/localEditor";
+import {
   PROTOCOL_ASSUMPTIONS,
   PROTOCOL_SAFETY_STATUS,
   createProtocolDiagnosticsSnapshot,
@@ -56,11 +73,13 @@ import {
 import type { HidDetectionResult, HidDetectionState } from "./types/hid";
 import type { LocalProfileStorageState, LocalProfileStore, SavedLocalProfile } from "./types/localProfile";
 import type { AjazzProfile, ImportedProfile, KeyboardKey } from "./types/profile";
+import type { EditorDiffSummary, EditorValidation, LocalEditorSession } from "./lib/localEditor";
 
 type Screen =
   | "dashboard"
   | "device"
   | "profiles"
+  | "editor"
   | "import"
   | "inspector"
   | "layout"
@@ -77,6 +96,7 @@ const navigation: Array<{ id: Screen; label: string; icon: typeof Home }> = [
   { id: "dashboard", label: "Dashboard", icon: Home },
   { id: "device", label: "Device", icon: Cpu },
   { id: "profiles", label: "Profiles", icon: SquareStack },
+  { id: "editor", label: "Local Editor", icon: SlidersHorizontal },
   { id: "import", label: "Profile Import", icon: FileJson },
   { id: "inspector", label: "Profile Inspector", icon: PanelsTopLeft },
   { id: "layout", label: "Keyboard Layout", icon: Keyboard },
@@ -98,6 +118,9 @@ export default function App() {
   const [localProfileStore, setLocalProfileStore] = useState<LocalProfileStore>(initialLocalProfileLoad.store);
   const [storageError, setStorageError] = useState<string | undefined>(initialLocalProfileLoad.error);
   const [backupMessage, setBackupMessage] = useState<string | undefined>(initialLocalProfileLoad.error);
+  const [editorSession, setEditorSession] = useState<LocalEditorSession | undefined>();
+  const editorValidation = useMemo(() => validateEditorSession(editorSession), [editorSession]);
+  const editorDiff = useMemo(() => createEditorDiffSummary(editorSession), [editorSession]);
   const [storageHealth, setStorageHealth] = useState<LocalProfileStorageState["storageHealth"]>(() =>
     initialLocalProfileLoad.error ? "recovered" : "healthy",
   );
@@ -202,6 +225,90 @@ export default function App() {
     setBackupMessage(`Exported profile "${profileToExport.displayName}" as JSON.`);
   }
 
+  function startEditingImportedProfile() {
+    const session = createEditorSessionFromImported(importedProfile);
+    if (!session) {
+      return;
+    }
+
+    setEditorSession(session);
+    setActiveScreen("editor");
+  }
+
+  function startEditingSavedProfile(profileId: string) {
+    const savedProfile = localProfileStore.profiles.find((profile) => profile.id === profileId);
+    if (!savedProfile) {
+      return;
+    }
+
+    setEditorSession(createEditorSessionFromSaved(savedProfile));
+    setActiveScreen("editor");
+  }
+
+  function exportEditedProfile() {
+    if (!editorSession || !editorValidation.valid) {
+      return;
+    }
+
+    const json = JSON.stringify(createEditedRaw(editorSession), null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${sanitizeFilename(editorSession.workingProfile.profileName || "ak680-edited-profile")}-edited.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function saveEditedProfileAsNew() {
+    if (!editorSession || !editorValidation.valid) {
+      return;
+    }
+
+    const editedImport = createEditedImportedProfile(editorSession, "local-editor.json");
+    const savedProfile = createSavedLocalProfile(editedImport);
+    setLocalProfileStore((current) => ({
+      ...current,
+      profiles: [savedProfile, ...current.profiles],
+      activeProfileId: current.activeProfileId ?? savedProfile.id,
+    }));
+    setBackupMessage(`Saved edited profile "${savedProfile.displayName}" as a new local profile.`);
+  }
+
+  function updateEditedSavedProfile() {
+    if (!editorSession || editorSession.source.kind !== "saved" || !editorValidation.valid) {
+      return;
+    }
+
+    const savedSource = editorSession.source;
+    const savedProfile = localProfileStore.profiles.find((profile) => profile.id === savedSource.savedProfileId);
+    if (!savedProfile) {
+      return;
+    }
+
+    const confirmed = window.confirm(`Update saved local profile "${savedProfile.displayName}" with local edits?`);
+    if (!confirmed) {
+      return;
+    }
+
+    const updatedProfile: SavedLocalProfile = {
+      ...savedProfile,
+      displayName: editorSession.workingProfile.profileName || savedProfile.displayName,
+      originalProfileName: editorSession.workingProfile.profileName || savedProfile.originalProfileName,
+      deviceId: getDeviceIdentity(editorSession.workingProfile)?.deviceId ?? savedProfile.deviceId,
+      updatedAt: new Date().toISOString(),
+      raw: createEditedRaw(editorSession),
+      profile: createEditedImportedProfile(editorSession).profile,
+    };
+
+    setLocalProfileStore((current) => ({
+      ...current,
+      profiles: current.profiles.map((profile) => (profile.id === updatedProfile.id ? updatedProfile : profile)),
+    }));
+    setEditorSession(createEditorSessionFromSaved(updatedProfile));
+    setBackupMessage(`Updated saved local profile "${updatedProfile.displayName}".`);
+  }
+
   function exportProfileLibraryBackup() {
     const backup = createLocalProfileBackup(localProfileStore);
     const json = JSON.stringify(backup, null, 2);
@@ -304,6 +411,8 @@ export default function App() {
               importedProfile={importedProfile}
               localProfileStorage={localProfileStorage}
               onSaveImported={saveImportedProfileLocally}
+              onEditImported={startEditingImportedProfile}
+              onEditSaved={startEditingSavedProfile}
               onSelectActive={selectActiveLocalProfile}
               onRename={renameLocalProfile}
               onDelete={deleteLocalProfile}
@@ -312,11 +421,27 @@ export default function App() {
               onRestoreBackup={restoreProfileLibraryBackup}
             />
           )}
+          {activeScreen === "editor" && (
+            <LocalEditor
+              importedProfile={importedProfile}
+              localProfileStorage={localProfileStorage}
+              editorSession={editorSession}
+              validation={editorValidation}
+              diff={editorDiff}
+              onStartImported={startEditingImportedProfile}
+              onStartSaved={startEditingSavedProfile}
+              onUpdateSession={setEditorSession}
+              onExportEdited={exportEditedProfile}
+              onSaveAsNew={saveEditedProfileAsNew}
+              onUpdateExisting={updateEditedSavedProfile}
+            />
+          )}
           {activeScreen === "import" && (
             <ProfileImport
               importedProfile={importedProfile}
               setImportedProfile={setImportedProfile}
               onSaveImported={saveImportedProfileLocally}
+              onEditImported={startEditingImportedProfile}
             />
           )}
           {activeScreen === "inspector" && <ProfileInspector profile={profile} importedProfile={importedProfile} />}
@@ -338,6 +463,9 @@ export default function App() {
               importedProfile={importedProfile}
               hidDetection={hidDetection}
               localProfileStorage={localProfileStorage}
+              editorSession={editorSession}
+              editorValidation={editorValidation}
+              editorDiff={editorDiff}
             />
           )}
           {activeScreen === "about" && <About />}
@@ -509,10 +637,12 @@ function ProfileImport({
   importedProfile,
   setImportedProfile,
   onSaveImported,
+  onEditImported,
 }: {
   importedProfile: ImportedProfile;
   setImportedProfile: (profile: ImportedProfile) => void;
   onSaveImported: () => void;
+  onEditImported: () => void;
 }) {
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -545,14 +675,24 @@ function ProfileImport({
                 Saved profiles stay in browser localStorage on this machine.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onSaveImported}
-              disabled={!importedProfile.validation.valid}
-              className="inline-flex items-center justify-center rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Save Imported Profile Locally
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={onEditImported}
+                disabled={!importedProfile.validation.valid}
+                className="inline-flex items-center justify-center rounded border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:bg-cloud disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Edit Local Copy
+              </button>
+              <button
+                type="button"
+                onClick={onSaveImported}
+                disabled={!importedProfile.validation.valid}
+                className="inline-flex items-center justify-center rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Save Imported Profile Locally
+              </button>
+            </div>
           </div>
         </div>
       </Section>
@@ -565,6 +705,8 @@ function Profiles({
   importedProfile,
   localProfileStorage,
   onSaveImported,
+  onEditImported,
+  onEditSaved,
   onSelectActive,
   onRename,
   onDelete,
@@ -575,6 +717,8 @@ function Profiles({
   importedProfile: ImportedProfile;
   localProfileStorage: LocalProfileStorageState;
   onSaveImported: () => void;
+  onEditImported: () => void;
+  onEditSaved: (profileId: string) => void;
   onSelectActive: (profileId: string) => void;
   onRename: (profileId: string) => void;
   onDelete: (profileId: string) => void;
@@ -614,14 +758,24 @@ function Profiles({
                 Source: {importedProfile.sourceName}. Local storage only, no account or remote upload.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onSaveImported}
-              disabled={!importedProfile.validation.valid}
-              className="inline-flex items-center justify-center rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Save Imported Profile Locally
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={onEditImported}
+                disabled={!importedProfile.validation.valid}
+                className="inline-flex items-center justify-center rounded border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:bg-cloud disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Edit Local Copy
+              </button>
+              <button
+                type="button"
+                onClick={onSaveImported}
+                disabled={!importedProfile.validation.valid}
+                className="inline-flex items-center justify-center rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Save Imported Profile Locally
+              </button>
+            </div>
           </div>
         </div>
       </Section>
@@ -639,6 +793,7 @@ function Profiles({
                 onRename={onRename}
                 onDelete={onDelete}
                 onExport={onExport}
+                onEdit={onEditSaved}
               />
             ))}
           </div>
@@ -750,6 +905,7 @@ function SavedProfileCard({
   onRename,
   onDelete,
   onExport,
+  onEdit,
 }: {
   savedProfile: SavedLocalProfile;
   active: boolean;
@@ -757,6 +913,7 @@ function SavedProfileCard({
   onRename: (profileId: string) => void;
   onDelete: (profileId: string) => void;
   onExport: (profileId: string) => void;
+  onEdit: (profileId: string) => void;
 }) {
   return (
     <div className="rounded border border-line bg-white p-4">
@@ -782,6 +939,9 @@ function SavedProfileCard({
           </button>
           <button type="button" className="rounded border border-line px-3 py-2 text-sm" onClick={() => onRename(savedProfile.id)}>
             Rename
+          </button>
+          <button type="button" className="rounded border border-line px-3 py-2 text-sm" onClick={() => onEdit(savedProfile.id)}>
+            Edit Local Copy
           </button>
           <button type="button" className="rounded border border-line px-3 py-2 text-sm" onClick={() => onExport(savedProfile.id)}>
             Export JSON
@@ -809,6 +969,321 @@ function Timestamp({ label, value }: { label: string; value?: string }) {
     <div className="rounded border border-line bg-cloud p-3">
       <p className="text-xs font-semibold uppercase tracking-wide text-moss">{label}</p>
       <p className="mt-1 break-words text-sm text-slate-700">{formatTimestamp(value)}</p>
+    </div>
+  );
+}
+
+function LocalEditor({
+  importedProfile,
+  localProfileStorage,
+  editorSession,
+  validation,
+  diff,
+  onStartImported,
+  onStartSaved,
+  onUpdateSession,
+  onExportEdited,
+  onSaveAsNew,
+  onUpdateExisting,
+}: {
+  importedProfile: ImportedProfile;
+  localProfileStorage: LocalProfileStorageState;
+  editorSession?: LocalEditorSession;
+  validation: EditorValidation;
+  diff: EditorDiffSummary;
+  onStartImported: () => void;
+  onStartSaved: (profileId: string) => void;
+  onUpdateSession: (session: LocalEditorSession | undefined) => void;
+  onExportEdited: () => void;
+  onSaveAsNew: () => void;
+  onUpdateExisting: () => void;
+}) {
+  const keyEntries = editorSession ? getEditableKeyEntries(editorSession.workingProfile) : [];
+  const firstAxis = editorSession ? getFirstEditableMagneticAxis(editorSession.workingProfile) : undefined;
+  const gameMode = editorSession?.workingProfile.gameModeInfo;
+  const lighting = editorSession?.workingProfile.ledEffect;
+
+  function resetEdits() {
+    if (!editorSession) {
+      return;
+    }
+
+    if (diff.changed && !window.confirm("Discard all unsaved local edits and reset to the original profile copy?")) {
+      return;
+    }
+
+    onUpdateSession(resetEditorSession(editorSession));
+  }
+
+  return (
+    <>
+      <PageHeader title="Local Editor" eyebrow="Local profile JSON editing" />
+      <Section title="Local-Only Safety Notice">
+        <div className="rounded border border-copper/40 bg-copper/10 p-5">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
+            <div>
+              <p className="font-bold text-ink">Edits stay in local profile JSON</p>
+              <p className="mt-1 text-sm leading-6 text-slate-700">
+                This editor works on a deep-cloned local copy. It can export JSON, save a new local profile, or update a
+                saved local profile after confirmation. It does not change the keyboard, send HID packets, or provide
+                apply/sync/save-to-device behavior.
+              </p>
+            </div>
+          </div>
+        </div>
+      </Section>
+      <Section title="Start Editing">
+        <div className="rounded border border-line bg-white p-5">
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+            <div>
+              <p className="font-semibold text-ink">Current imported profile</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Source: {importedProfile.sourceName}. Invalid imports cannot start a local edit session.
+              </p>
+              <button
+                type="button"
+                onClick={onStartImported}
+                disabled={!importedProfile.validation.valid}
+                className="mt-3 inline-flex items-center justify-center rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Edit Imported Copy
+              </button>
+            </div>
+            <div>
+              <p className="font-semibold text-ink">Saved local profiles</p>
+              {localProfileStorage.profiles.length === 0 ? (
+                <p className="mt-1 text-sm leading-6 text-slate-600">No saved local profiles are available.</p>
+              ) : (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {localProfileStorage.profiles.map((profile) => (
+                    <button
+                      key={profile.id}
+                      type="button"
+                      onClick={() => onStartSaved(profile.id)}
+                      className="rounded border border-line px-3 py-2 text-sm transition hover:bg-cloud"
+                    >
+                      {profile.displayName}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </Section>
+      {!editorSession ? (
+        <EmptyState message="Start from a valid imported profile or a saved local profile to edit a cloned local copy." />
+      ) : (
+        <>
+          <Section title="Edit Session">
+            <InfoGrid
+              items={[
+                { label: "Source", value: editorSession.source.label },
+                { label: "Source type", value: editorSession.source.kind === "saved" ? "Saved local profile" : "Imported profile" },
+                { label: "Validation", value: validation.valid ? "Valid for local export/save" : "Blocked until errors are fixed" },
+                { label: "Unsaved local changes", value: diff.changed ? "Yes" : "No" },
+                { label: "Changed keys", value: diff.keymapChangedCount },
+                { label: "RT/actuation", value: diff.rtStatus },
+                { label: "SOCD/game mode", value: diff.gameModeStatus },
+                { label: "Lighting", value: diff.lightingStatus },
+                { label: "Macros", value: diff.macroStatus },
+              ]}
+            />
+          </Section>
+          {!validation.valid && (
+            <Section title="Validation Errors">
+              <ul className="rounded border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+                {validation.errors.map((error) => (
+                  <li key={error}>{error}</li>
+                ))}
+              </ul>
+            </Section>
+          )}
+          <Section title="Profile Name">
+            <label className="block rounded border border-line bg-white p-4 text-sm font-semibold text-ink">
+              Local profile name
+              <input
+                className="mt-2 w-full rounded border border-line px-3 py-2 text-sm font-normal"
+                value={editorSession.workingProfile.profileName}
+                onChange={(event) => onUpdateSession(setEditorProfileName(editorSession, event.target.value))}
+              />
+            </label>
+          </Section>
+          <Section title="Keymap Local Editing">
+            {keyEntries.length === 0 ? (
+              <EmptyState message="This profile does not include a keyList section. Other sections remain editable where present." />
+            ) : (
+              <div className="overflow-x-auto rounded border border-line bg-white">
+                <table className="min-w-full border-collapse text-left text-sm">
+                  <thead className="bg-cloud text-xs uppercase tracking-wide text-moss">
+                    <tr>
+                      <th className="border-b border-line px-3 py-3">Position</th>
+                      <th className="border-b border-line px-3 py-3">Physical key</th>
+                      <th className="border-b border-line px-3 py-3">Local assignment name</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {keyEntries.map((key) => (
+                      <tr key={`${key.rowIndex}-${key.keyIndex}`}>
+                        <td className="border-b border-line px-3 py-3">
+                          Row {key.rowIndex + 1}, key {key.keyIndex + 1}
+                        </td>
+                        <td className="border-b border-line px-3 py-3 font-semibold">{key.label}</td>
+                        <td className="border-b border-line px-3 py-3">
+                          <input
+                            className="w-full min-w-40 rounded border border-line px-3 py-2"
+                            value={key.assignment}
+                            placeholder="Default"
+                            onChange={(event) =>
+                              onUpdateSession(
+                                setKeyUserAssignment(editorSession, key.rowIndex, key.keyIndex, event.target.value),
+                              )
+                            }
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Section>
+          <Section title="RT / Actuation Local Editing">
+            {!firstAxis ? (
+              <EmptyState message="This profile does not include editable magneticAxisRT records. The missing section is preserved." />
+            ) : (
+              <NumberFieldGrid
+                fields={[
+                  ["pressRT", "Press RT"],
+                  ["releaseRT", "Release RT"],
+                  ["triggerKeyStroke", "Trigger keystroke"],
+                ]}
+                source={firstAxis}
+                onChange={(field, value) =>
+                  onUpdateSession(
+                    setFirstMagneticAxisValue(
+                      editorSession,
+                      field as "pressRT" | "releaseRT" | "triggerKeyStroke",
+                      value,
+                    ),
+                  )
+                }
+              />
+            )}
+          </Section>
+          <Section title="SOCD / Game Mode Local Editing">
+            {!gameMode ? (
+              <EmptyState message="This profile does not include gameModeInfo. The missing section is preserved." />
+            ) : (
+              <NumberFieldGrid
+                fields={[
+                  ["reportRate", "Report rate"],
+                  ["keyDelay", "Key delay"],
+                  ["sleepTime", "Sleep time"],
+                ]}
+                source={gameMode}
+                onChange={(field, value) =>
+                  onUpdateSession(setGameModeValue(editorSession, field as "reportRate" | "keyDelay" | "sleepTime", value))
+                }
+              />
+            )}
+          </Section>
+          <Section title="Lighting Local Editing">
+            {!lighting ? (
+              <EmptyState message="This profile does not include ledEffect data. The missing section is preserved." />
+            ) : (
+              <NumberFieldGrid
+                fields={[
+                  ["mode", "Mode"],
+                  ["brightness", "Brightness"],
+                  ["speed", "Speed"],
+                  ["red", "Red"],
+                  ["green", "Green"],
+                  ["blue", "Blue"],
+                ]}
+                source={lighting}
+                onChange={(field, value) =>
+                  onUpdateSession(
+                    setLightingValue(
+                      editorSession,
+                      field as "mode" | "brightness" | "speed" | "red" | "green" | "blue",
+                      value,
+                    ),
+                  )
+                }
+              />
+            )}
+          </Section>
+          <Section title="Macro Preservation">
+            <div className="rounded border border-line bg-white p-5 text-sm leading-6 text-slate-700">
+              Macro editing is not implemented in this public alpha. The editor validates that macroDataList remains
+              exactly preserved before local export, save-as-new, or update.
+            </div>
+          </Section>
+          <Section title="Local Edit Actions">
+            <div className="flex flex-wrap gap-2 rounded border border-line bg-white p-5">
+              <button
+                type="button"
+                onClick={onExportEdited}
+                disabled={!validation.valid}
+                className="rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Export Edited JSON
+              </button>
+              <button
+                type="button"
+                onClick={onSaveAsNew}
+                disabled={!validation.valid}
+                className="rounded border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:bg-cloud disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Save as New Local Profile
+              </button>
+              <button
+                type="button"
+                onClick={onUpdateExisting}
+                disabled={!validation.valid || editorSession.source.kind !== "saved"}
+                className="rounded border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:bg-cloud disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Update Existing Local Profile
+              </button>
+              <button
+                type="button"
+                onClick={resetEdits}
+                className="rounded border border-red-300 px-4 py-2 text-sm font-semibold text-red-700"
+              >
+                Discard Local Edits
+              </button>
+            </div>
+          </Section>
+        </>
+      )}
+    </>
+  );
+}
+
+function NumberFieldGrid({
+  fields,
+  source,
+  onChange,
+}: {
+  fields: Array<[string, string]>;
+  source: Record<string, unknown>;
+  onChange: (field: string, value: number) => void;
+}) {
+  return (
+    <div className="grid gap-3 rounded border border-line bg-white p-4 md:grid-cols-3">
+      {fields.map(([field, label]) => (
+        <label key={field} className="text-sm font-semibold text-ink">
+          {label}
+          <input
+            type="number"
+            className="mt-2 w-full rounded border border-line px-3 py-2 text-sm font-normal"
+            value={typeof source[field] === "number" ? source[field] : ""}
+            onChange={(event) => onChange(field, Number(event.target.value))}
+          />
+        </label>
+      ))}
     </div>
   );
 }
@@ -1202,10 +1677,16 @@ function Diagnostics({
   importedProfile,
   hidDetection,
   localProfileStorage,
+  editorSession,
+  editorValidation,
+  editorDiff,
 }: {
   importedProfile: ImportedProfile;
   hidDetection: HidDetectionState;
   localProfileStorage: LocalProfileStorageState;
+  editorSession?: LocalEditorSession;
+  editorValidation: EditorValidation;
+  editorDiff: EditorDiffSummary;
 }) {
   const profile = importedProfile.validation.valid ? importedProfile.profile : undefined;
   const hidStatus = getHidStatusText(hidDetection);
@@ -1295,6 +1776,23 @@ function Diagnostics({
           ]}
         />
       </Section>
+      <Section title="Local Editor Status">
+        <InfoGrid
+          items={[
+            { label: "Editor availability", value: "Local profile JSON editing only" },
+            { label: "Active edit session", value: editorSession ? editorSession.source.label : "None" },
+            { label: "Source type", value: editorSession?.source.kind ?? "None" },
+            { label: "Validation", value: editorValidation.valid ? "Valid" : "Not ready" },
+            { label: "Unsaved local changes", value: editorDiff.changed ? "Yes" : "No" },
+            { label: "Changed key entries", value: editorDiff.keymapChangedCount },
+            { label: "RT/actuation status", value: editorDiff.rtStatus },
+            { label: "SOCD/game mode status", value: editorDiff.gameModeStatus },
+            { label: "Lighting status", value: editorDiff.lightingStatus },
+            { label: "Macro status", value: editorDiff.macroStatus },
+            { label: "Keyboard hardware changes", value: "Not implemented" },
+          ]}
+        />
+      </Section>
       <Section title="Safety Audit">
         <ul className="grid gap-2 sm:grid-cols-2">
           {safetyItems.map((item) => (
@@ -1324,6 +1822,7 @@ function About() {
             { label: "Hardware detection", value: "Read-only HID metadata enumeration" },
             { label: "Profile storage", value: "Local browser storage on this machine" },
             { label: "Profile backups", value: "Local JSON import/export only" },
+            { label: "Profile editing", value: "Local JSON edits only" },
             { label: "Hardware writes", value: "Not implemented" },
             { label: "Vendor affiliation", value: "Unofficial; no AJAZZ affiliation" },
           ]}
@@ -1333,10 +1832,10 @@ function About() {
         <div className="rounded border border-line bg-white p-5">
           <p className="text-sm leading-6 text-slate-700">
             AK680 Studio can inspect imported profile JSON, list local HID device metadata, manage saved local profiles,
-            and export or restore local backup files. It is not a complete keyboard control suite yet. Hardware-write,
-            firmware, calibration, keymap editing, RGB editing, rapid trigger editing, SOCD editing, and macro editing
-            work requires future protocol research, Red Team review, and explicit maintainer approval before
-            implementation.
+            edit local profile JSON, and export or restore local backup files. It is not a complete keyboard control
+            suite yet. Hardware-write, firmware, calibration, device-side keymap/RGB/rapid trigger/SOCD writes, and
+            macro editing work requires future protocol research, Red Team review, and explicit maintainer approval
+            before implementation.
           </p>
         </div>
       </Section>

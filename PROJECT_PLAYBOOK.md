@@ -9,7 +9,7 @@
 **Project type:** Open-source native desktop app  
 **Target device:** AJAZZ AK680 V2  
 **License:** Apache-2.0
-**Status:** Work Package 6 protocol research toolkit
+**Status:** Work Package 7 local-only profile editor
 
 AK680 Studio is an unofficial, open-source, lightweight native desktop app for inspecting and eventually configuring the AJAZZ AK680 V2 keyboard.
 
@@ -34,7 +34,7 @@ The long-term app should support:
 - Local backups before device writes
 - Safe, documented hardware operations
 
-Work Packages 1, 2, 3, 4, 5, and 6 are intentionally read-only and do not configure the physical keyboard.
+Work Packages 1, 2, 3, 4, 5, and 6 are intentionally read-only and do not configure the physical keyboard. Work Package 7 adds local profile JSON editing only and still does not configure the physical keyboard.
 
 ---
 
@@ -164,6 +164,8 @@ For Work Package 4, Codex may implement local profile storage schema versioning,
 For Work Package 5, Codex may implement public alpha repo polish, in-app alpha/read-only messaging, an About screen or section, GitHub issue templates, a pull request template, check-only GitHub Actions CI, contribution guidance, security guidance, screenshot instructions, and copy/empty-state polish only. WP5 must not implement hardware writes, HID writes, keyboard configuration reads/writes, apply-to-keyboard actions, sync-to-keyboard actions, save-to-device behavior, key remapping editors, RGB editors, rapid trigger editors, SOCD editors, macro editors, firmware flashing, calibration, cloud sync, user accounts, remote upload, database services, installer/release packaging, release binary publishing, Electron, or embedded AJAZZ website behavior.
 
 For Work Package 6, Codex may implement a read-only Advanced / Protocol Research screen, safe HID metadata display, cautious likely research interface labeling based only on enumeration metadata, protocol assumptions, local diagnostics snapshot export, Diagnostics protocol research status, and practical pure helper tests only. WP6 must not implement hardware writes, HID writes, `device.write`, `send_feature_report`, `set_report`, output reports, unknown HID command packets, keyboard configuration reads requiring command packets, keyboard configuration writes, apply-to-keyboard actions, sync-to-keyboard actions, save-to-device behavior, key remapping editors, RGB editors, rapid trigger editors, SOCD editors, macro editors, firmware flashing, calibration, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 source code/comments/structures/constants/packet code.
+
+For Work Package 7, Codex may implement a local-only editor for imported or saved AK680 V2 profile JSON. WP7 may deep-clone a profile for editing, locally edit safe profile data such as key assignment names, RT/actuation values, SOCD/game-mode fields, and lighting fields, show edited-vs-original summaries, validate before local export/save/update, export edited JSON, save as a new local profile, update an existing saved local profile after confirmation, and discard/reset local edits. WP7 must preserve `macroDataList` exactly unless a later package explicitly implements macro editing. WP7 must not implement hardware writes, HID writes, `device.write`, `send_feature_report`, `set_report`, output reports, unknown HID command packets, keyboard configuration reads requiring command packets, keyboard configuration writes, apply-to-keyboard actions, sync-to-keyboard actions, save-to-device behavior, real keymap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 source code/comments/structures/constants/packet code.
 
 Any future hardware-write package must include:
 
@@ -481,9 +483,65 @@ Add a read-only protocol research toolkit for safely inspecting AK680 V2 HID/dev
 
 ---
 
+## 7f. Work Package 7 Scope
+
+### Goal
+
+Add a local-only settings editor suite for imported or saved AK680 V2 profile data while preserving all accepted Work Package 1 through Work Package 6 behavior.
+
+### In Scope
+
+- Local Editor / Edit Profile screen or mode
+- Start editing from a valid imported profile or saved local profile
+- Deep-cloned editable local copy that preserves the original until explicit export/save/update
+- Local-only warning that the keyboard is not changed
+- Safe local keymap assignment-name editing
+- Safe local RT/actuation editing where profile sections exist
+- Safe local SOCD/game-mode editing where profile sections exist
+- Safe local lighting editing where profile sections exist
+- Exact `macroDataList` preservation when macro editing is not implemented
+- Edited-vs-original diff and summary
+- Validation before export/save/update
+- Edited profile JSON export
+- Save edited profile as a new local profile
+- Update existing local profile after confirmation
+- Discard/reset local edits
+- Diagnostics local editor status
+- Practical pure logic tests
+- Documentation updates
+
+### Out of Scope
+
+- Hardware writes
+- HID writes
+- `device.write`
+- `send_feature_report`
+- `set_report`
+- Output report behavior
+- Unknown HID command packets
+- Keyboard configuration reads requiring command packets
+- Keyboard configuration writes
+- Applying profiles to keyboard
+- Syncing profiles to keyboard
+- Save-to-device behavior
+- Real keymap/RGB/RT/SOCD/macro writes
+- Macro editor
+- Firmware flashing
+- Calibration
+- Cloud sync
+- User accounts
+- Remote upload
+- Database services
+- Release publishing
+- Electron wrapper
+- Embedded AJAZZ website
+- Copied GPL-3.0 source code, comments, structures, constants, or packet code
+
+---
+
 ## 8. Required Screens
 
-Work Package 1 must include these screens:
+The current app must include these screens:
 
 1. Dashboard
 2. Device
@@ -494,6 +552,9 @@ Work Package 1 must include these screens:
 7. Rapid Trigger
 8. Macros
 9. Diagnostics
+10. Profiles
+11. Protocol Research
+12. Local Editor
 
 All screens must remain read-only with respect to physical keyboard hardware.
 

@@ -1,6 +1,6 @@
 # AK680 Studio
 
-AK680 Studio is an unofficial, open-source native desktop public alpha for inspecting AJAZZ AK680 V2 profile exports, detecting the target keyboard with read-only HID metadata, and managing local saved profile backups.
+AK680 Studio is an unofficial, open-source native desktop public alpha for inspecting AJAZZ AK680 V2 profile exports, detecting the target keyboard with read-only HID metadata, managing local saved profile backups, and editing imported profile JSON locally.
 
 This project is not affiliated with, endorsed by, or maintained by AJAZZ. The official vendor tooling remains the supported configuration path until any native hardware-write behavior is researched, documented, reviewed, and explicitly approved in a future work package.
 
@@ -10,6 +10,7 @@ AK680 Studio is local-only and read-only with respect to keyboard hardware.
 
 - Profile imports are parsed locally.
 - Saved profiles and backups stay on this machine.
+- Local editor changes affect exported or saved local profile JSON only.
 - HID detection enumerates safe metadata only.
 - No hardware writes are implemented.
 - No apply, sync, save-to-device, firmware flashing, calibration, cloud sync, user account, remote upload, or database feature is included.
@@ -29,8 +30,27 @@ AK680 Studio is local-only and read-only with respect to keyboard hardware.
 - Full local profile library backup export/import with schema validation.
 - Merge and confirmed replace restore modes.
 - Duplicate profile ID handling and corrupt/incompatible storage recovery.
+- Local Editor for cloned imported or saved profile data, including safe local-only keymap assignment names, RT/actuation values, SOCD/game-mode fields, and lighting fields.
+- Edited-vs-original summaries, validation, edited JSON export, save-as-new local profile, confirmed update of existing saved local profiles, and discard/reset edits.
+- Exact macro data preservation when using the Local Editor.
 - Protocol Research screen for safe HID metadata inspection and local diagnostics snapshot export.
 - Diagnostics and About screens with public-alpha safety status.
+
+## Local Editor
+
+The Local Editor is for profile JSON data only. It starts from a valid imported profile or a saved local profile, deep-clones the source, and keeps the original unchanged until you explicitly export edited JSON, save a new local profile, or confirm an update to an existing saved local profile.
+
+The editor supports local-only changes for:
+
+- Profile display/name data
+- Key assignment names inside `keyList`
+- First editable `magneticAxisRT` RT/actuation record where present
+- Selected `gameModeInfo` SOCD/game-mode fields where present
+- Selected `ledEffect` lighting fields where present
+
+Missing optional sections are preserved gracefully. `macroDataList` is not edited and must remain exactly preserved for validation to pass.
+
+The Local Editor does not apply profiles to the keyboard, sync profiles to the keyboard, save anything to device memory, send HID packets, or read/write keyboard configuration through command packets.
 
 ## Protocol Research
 
@@ -71,7 +91,7 @@ Do not include private profile data, serial numbers, or local file paths in scre
 - React
 - TypeScript
 - Tailwind CSS
-- Local-only browser state and localStorage profile persistence
+- Local-only browser state, localStorage profile persistence, and local profile editing
 
 ## Setup
 
@@ -152,10 +172,10 @@ Report unsafe hardware-control behavior, accidental write paths, or security iss
 - Applying profiles to keyboard
 - Syncing profiles to keyboard
 - Save-to-device behavior
-- Key remapping editor
-- RGB editor
-- Rapid trigger editor
-- SOCD editor
+- Device-side key remapping editor/write path
+- Device-side RGB editor/write path
+- Device-side rapid trigger editor/write path
+- Device-side SOCD editor/write path
 - Macro editor
 - Keymap writes
 - RGB writes

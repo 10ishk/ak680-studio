@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased - Work Package 2
+
+- Added read-only HID device enumeration through the Rust backend.
+- Added AK680 V2 target matching for VID `3141` and PID `32956`.
+- Updated the Device screen with a refresh detection action, detected/not-detected/error states, and safe HID metadata display.
+- Updated Diagnostics with the last HID detection status, enumerated device count, and error reporting.
+- Added Rust tests for target VID/PID matching logic.
+
+Known limitations:
+
+- Detection depends on OS HID permissions, driver state, and whether the keyboard is connected in a mode visible to HID enumeration.
+- No hardware writes, HID feature report sends, keyboard configuration writes, firmware flashing, calibration, or save/apply/sync-to-device actions are included.
+
 ## 0.1.0 - Work Package 1
 
 - Added the open-source project foundation for AK680 Studio.

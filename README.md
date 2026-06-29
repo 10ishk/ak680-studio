@@ -1,17 +1,17 @@
 # AK680 Studio
 
-AK680 Studio is an unofficial, open-source native desktop app for inspecting AJAZZ AK680 V2 profile exports. Work Package 1 is a read-only foundation: it imports a local profile JSON file, validates that it targets the AJAZZ AK680 V2, and displays profile data without writing to hardware.
+AK680 Studio is an unofficial, open-source native desktop app for inspecting AJAZZ AK680 V2 profile exports and detecting the target keyboard locally. Work Package 2 adds read-only HID device detection while preserving the Work Package 1 read-only profile inspector.
 
 This project is not affiliated with, endorsed by, or maintained by AJAZZ. The official vendor tooling remains the supported configuration path until native hardware-write behavior is researched, documented, and reviewed in a future work package.
 
 ## Tech Stack
 
 - Tauri v2
-- Rust backend scaffold
+- Rust backend with read-only HID enumeration
 - React
 - TypeScript
 - Tailwind CSS
-- Local-only browser state for Work Package 1
+- Local-only browser state
 
 ## Setup
 
@@ -47,6 +47,13 @@ cd src-tauri
 cargo check
 ```
 
+Run Rust tests:
+
+```bash
+cd src-tauri
+cargo test
+```
+
 ## Work Package 1 Scope
 
 Included:
@@ -59,10 +66,29 @@ Included:
 - Keyboard layout rendering from `keyList`
 - Sample fixture at `fixtures/ak680-profile.sample.json`
 
+## Work Package 2 Scope
+
+Included:
+
+- Read-only HID enumeration through the Rust backend.
+- Device screen refresh detection action.
+- AK680 V2 target matching by VID `3141` and PID `32956`.
+- Safe metadata display for enumerated HID devices.
+- Diagnostics status for last HID detection result.
+- Practical Rust tests for target matching logic.
+
+Notes:
+
+- USB/wired mode may be required for the keyboard to appear as a HID device.
+- OS permissions can affect HID enumeration.
+- Detection is local and read-only.
+
 Out of scope:
 
 - Hardware writes
 - HID write/send commands
+- HID feature report send behavior
+- Keyboard configuration read/write commands
 - Keymap writes
 - RGB writes
 - Rapid trigger writes
@@ -75,5 +101,4 @@ Out of scope:
 
 ## Safety
 
-Work Package 1 is read-only. The app does not include hardware write commands, save-to-device actions, apply-to-device actions, firmware flashing, calibration, or background device sync.
-
+Work Packages 1 and 2 are read-only. The app does not include hardware write commands, save-to-device actions, apply-to-device actions, HID feature report sends, keyboard configuration writes, firmware flashing, calibration, or background device sync.

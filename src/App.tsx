@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import {
   Activity,
   Cpu,
@@ -26,6 +27,7 @@ import {
   parseImportedProfile,
   summarizeArray,
 } from "./lib/profileValidation";
+import type { HidDetectionResult, HidDetectionState } from "./types/hid";
 import type { AjazzProfile, ImportedProfile, KeyboardKey } from "./types/profile";
 
 type Screen =
@@ -56,7 +58,22 @@ const navigation: Array<{ id: Screen; label: string; icon: typeof Home }> = [
 export default function App() {
   const [activeScreen, setActiveScreen] = useState<Screen>("dashboard");
   const [importedProfile, setImportedProfile] = useState<ImportedProfile>(sampleImport);
+  const [hidDetection, setHidDetection] = useState<HidDetectionState>({ status: "idle" });
   const profile = importedProfile.validation.valid ? importedProfile.profile : undefined;
+
+  async function refreshHidDetection() {
+    setHidDetection((current) => ({ status: "checking", result: current.result }));
+
+    try {
+      const result = await invoke<HidDetectionResult>("list_hid_devices");
+      setHidDetection({ status: result.targetDetected ? "detected" : "not-detected", result });
+    } catch (error) {
+      setHidDetection({
+        status: "error",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
   return (
     <div className="min-h-screen bg-cloud text-ink">
@@ -96,7 +113,7 @@ export default function App() {
 
         <main className="min-w-0 p-5 lg:p-8">
           {activeScreen === "dashboard" && <Dashboard profile={profile} importedProfile={importedProfile} />}
-          {activeScreen === "device" && <Device />}
+          {activeScreen === "device" && <Device hidDetection={hidDetection} onRefresh={refreshHidDetection} />}
           {activeScreen === "import" && (
             <ProfileImport importedProfile={importedProfile} setImportedProfile={setImportedProfile} />
           )}
@@ -105,7 +122,9 @@ export default function App() {
           {activeScreen === "lighting" && <Lighting profile={profile} />}
           {activeScreen === "rapid-trigger" && <RapidTrigger profile={profile} />}
           {activeScreen === "macros" && <Macros profile={profile} />}
-          {activeScreen === "diagnostics" && <Diagnostics importedProfile={importedProfile} />}
+          {activeScreen === "diagnostics" && (
+            <Diagnostics importedProfile={importedProfile} hidDetection={hidDetection} />
+          )}
         </main>
       </div>
     </div>
@@ -171,20 +190,71 @@ function Dashboard({
   );
 }
 
-function Device() {
+function Device({
+  hidDetection,
+  onRefresh,
+}: {
+  hidDetection: HidDetectionState;
+  onRefresh: () => Promise<void>;
+}) {
+  const result = hidDetection.result;
+  const matchedDevices = result?.devices.filter((device) => device.matchedTarget) ?? [];
+  const statusText = getHidStatusText(hidDetection);
+
   return (
     <>
-      <PageHeader title="Device" eyebrow="Mock detection placeholder" />
+      <PageHeader title="Device" eyebrow="Read-only HID detection" />
+      <Section title="Detection">
+        <div className="rounded border border-line bg-white p-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-lg font-bold text-ink">{statusText.title}</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">{statusText.body}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                void onRefresh();
+              }}
+              disabled={hidDetection.status === "checking"}
+              className="inline-flex items-center justify-center rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {hidDetection.status === "checking" ? "Detecting..." : "Refresh Detection"}
+            </button>
+          </div>
+          {hidDetection.status === "error" && (
+            <div className="mt-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+              {hidDetection.error}
+            </div>
+          )}
+        </div>
+      </Section>
       <InfoGrid
         items={[
           { label: "Expected model", value: "AJAZZ AK680 V2" },
           { label: "Expected VID", value: TARGET_VID },
           { label: "Expected PID", value: TARGET_PID },
           { label: "Expected device ID", value: TARGET_DEVICE_ID },
-          { label: "Detection", value: "Mock placeholder only" },
-          { label: "Connection notes", value: "Future research may inspect USB/HID safely before any write work." },
+          { label: "Detection", value: statusText.title },
+          { label: "Connection notes", value: "USB/wired mode and OS HID permissions may affect enumeration." },
         ]}
       />
+      <Section title="Matched AK680 V2 Devices">
+        {matchedDevices.length === 0 ? (
+          <EmptyState message="No HID device matching VID 3141 and PID 32956 has been detected in the latest result." />
+        ) : (
+          <DeviceTable devices={matchedDevices} />
+        )}
+      </Section>
+      <Section title="Enumerated HID Devices">
+        {!result ? (
+          <EmptyState message="Run refresh detection to enumerate local HID devices." />
+        ) : result.devices.length === 0 ? (
+          <EmptyState message="HID enumeration completed, but no devices were returned." />
+        ) : (
+          <DeviceTable devices={result.devices} />
+        )}
+      </Section>
     </>
   );
 }
@@ -386,8 +456,15 @@ function Macros({ profile }: { profile?: AjazzProfile }) {
   );
 }
 
-function Diagnostics({ importedProfile }: { importedProfile: ImportedProfile }) {
+function Diagnostics({
+  importedProfile,
+  hidDetection,
+}: {
+  importedProfile: ImportedProfile;
+  hidDetection: HidDetectionState;
+}) {
   const profile = importedProfile.validation.valid ? importedProfile.profile : undefined;
+  const hidStatus = getHidStatusText(hidDetection);
   const safetyItems = useMemo(
     () => [
       "No hardware write commands",
@@ -401,6 +478,7 @@ function Diagnostics({ importedProfile }: { importedProfile: ImportedProfile }) 
       "No cloud login or sync",
       "No embedded AJAZZ website",
       "No Electron wrapper",
+      "HID enumeration only",
     ],
     [],
   );
@@ -419,6 +497,18 @@ function Diagnostics({ importedProfile }: { importedProfile: ImportedProfile }) 
           ]}
         />
       </Section>
+      <Section title="HID Detection Status">
+        <InfoGrid
+          items={[
+            { label: "Last status", value: hidStatus.title },
+            { label: "AK680 V2 detected", value: hidDetection.result?.targetDetected ? "Yes" : "No" },
+            { label: "Enumerated HID devices", value: hidDetection.result?.devices.length ?? "No detection run" },
+            { label: "Target VID", value: TARGET_VID },
+            { label: "Target PID", value: TARGET_PID },
+            { label: "Last error", value: hidDetection.status === "error" ? hidDetection.error : "None" },
+          ]}
+        />
+      </Section>
       <Section title="Safety Audit">
         <ul className="grid gap-2 sm:grid-cols-2">
           {safetyItems.map((item) => (
@@ -430,6 +520,74 @@ function Diagnostics({ importedProfile }: { importedProfile: ImportedProfile }) 
       </Section>
     </>
   );
+}
+
+function DeviceTable({ devices }: { devices: HidDetectionResult["devices"] }) {
+  return (
+    <div className="overflow-x-auto rounded border border-line bg-white">
+      <table className="min-w-full border-collapse text-left text-sm">
+        <thead className="bg-cloud text-xs uppercase tracking-wide text-moss">
+          <tr>
+            <th className="border-b border-line px-3 py-3">Match</th>
+            <th className="border-b border-line px-3 py-3">VID</th>
+            <th className="border-b border-line px-3 py-3">PID</th>
+            <th className="border-b border-line px-3 py-3">Manufacturer</th>
+            <th className="border-b border-line px-3 py-3">Product</th>
+            <th className="border-b border-line px-3 py-3">Serial</th>
+            <th className="border-b border-line px-3 py-3">Path</th>
+          </tr>
+        </thead>
+        <tbody>
+          {devices.map((device, index) => (
+            <tr key={`${device.vendorId}-${device.productId}-${device.path ?? index}`} className="align-top">
+              <td className="border-b border-line px-3 py-3 font-semibold">
+                {device.matchedTarget ? "AK680 V2" : "No"}
+              </td>
+              <td className="border-b border-line px-3 py-3">{device.vendorId}</td>
+              <td className="border-b border-line px-3 py-3">{device.productId}</td>
+              <td className="border-b border-line px-3 py-3">{device.manufacturer || "Not available"}</td>
+              <td className="border-b border-line px-3 py-3">{device.product || "Not available"}</td>
+              <td className="border-b border-line px-3 py-3">{device.serialNumber || "Not available"}</td>
+              <td className="max-w-96 break-words border-b border-line px-3 py-3 text-xs">
+                {device.path || "Not available"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function getHidStatusText(hidDetection: HidDetectionState) {
+  switch (hidDetection.status) {
+    case "checking":
+      return {
+        title: "Detecting HID devices",
+        body: "Enumerating local HID metadata through the Rust backend. This does not configure the keyboard.",
+      };
+    case "detected":
+      return {
+        title: "AK680 V2 detected",
+        body: "At least one HID device matched VID 3141 and PID 32956.",
+      };
+    case "not-detected":
+      return {
+        title: "AK680 V2 not detected",
+        body: "HID enumeration completed, but no device matched VID 3141 and PID 32956.",
+      };
+    case "error":
+      return {
+        title: "HID enumeration error",
+        body: "The backend could not enumerate HID devices. Check OS permissions and retry.",
+      };
+    case "idle":
+    default:
+      return {
+        title: "Detection not run",
+        body: "Refresh detection to enumerate local HID devices using read-only metadata.",
+      };
+  }
 }
 
 function EmptyState({ message }: { message: string }) {
@@ -455,4 +613,3 @@ function getKeyWidth(className?: string) {
   if (width >= 18) return "w-20";
   return "w-14";
 }
-

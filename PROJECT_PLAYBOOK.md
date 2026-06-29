@@ -9,7 +9,7 @@
 **Project type:** Open-source native desktop app  
 **Target device:** AJAZZ AK680 V2  
 **License:** MIT, unless the maintainer chooses another permissive license before first public release  
-**Status:** Work Package 1 foundation
+**Status:** Work Package 2 read-only HID detection
 
 AK680 Studio is an unofficial, open-source, lightweight native desktop app for inspecting and eventually configuring the AJAZZ AK680 V2 keyboard.
 
@@ -34,7 +34,7 @@ The long-term app should support:
 - Local backups before device writes
 - Safe, documented hardware operations
 
-Work Package 1 is intentionally read-only and does not configure the physical keyboard.
+Work Packages 1 and 2 are intentionally read-only and do not configure the physical keyboard.
 
 ---
 
@@ -151,6 +151,10 @@ For Work Package 1, Codex must not implement:
 
 The UI must clearly state that Work Package 1 is read-only.
 
+For Work Package 2, Codex may implement HID enumeration only. WP2 must not implement hardware writes, HID write/send commands, feature report sends, keyboard configuration read/write commands, save-to-device actions, apply-to-device actions, sync-to-device actions, firmware flashing, calibration, or background device sync.
+
+The UI must clearly state that Work Package 2 detection is read-only.
+
 Any future hardware-write package must include:
 
 1. Documented command/protocol research
@@ -205,6 +209,50 @@ Create the native AK680 Studio desktop app foundation with a polished UI shell a
 - Cloud features
 - Installer/release packaging
 - Multi-keyboard support
+
+---
+
+## 7a. Work Package 2 Scope
+
+### Goal
+
+Add real read-only HID device detection for the AJAZZ AK680 V2 while preserving all accepted Work Package 1 behavior.
+
+### Target Identity
+
+- VID: `3141`
+- PID: `32956`
+- Device/profile identity: `3141:32956:AJAZZ AK680 V2`
+
+### In Scope
+
+- Rust backend HID enumeration only
+- Tauri command returning safe HID metadata
+- Device screen refresh/detect action
+- Detected, not-detected, and error states
+- Read-only metadata display
+- Diagnostics HID detection status
+- Practical tests for VID/PID matching logic
+- Documentation updates
+
+### Out of Scope
+
+- Hardware writes
+- HID write/send commands
+- Feature report sends
+- Keyboard configuration read/write commands
+- Key remapping writes
+- RGB writes
+- Rapid trigger writes
+- SOCD writes
+- Macro writes
+- Firmware flashing
+- Calibration
+- Save/apply/sync-to-device UI
+- Background device sync
+- Electron wrapper
+- Embedded AJAZZ website
+- Cloud sync
 
 ---
 
@@ -439,4 +487,3 @@ Every future work package must include:
 Do not add features just because they seem obvious.
 
 Do not implement hardware writes unless a future work package explicitly allows it.
-

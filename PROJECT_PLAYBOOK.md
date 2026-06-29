@@ -9,7 +9,7 @@
 **Project type:** Open-source native desktop app  
 **Target device:** AJAZZ AK680 V2  
 **License:** Apache-2.0
-**Status:** Work Package 9 controlled read experiment harness
+**Status:** Work Package 10 evidence-gated device-info read harness
 
 AK680 Studio is an unofficial, open-source, lightweight native desktop app for inspecting and eventually configuring the AJAZZ AK680 V2 keyboard.
 
@@ -34,7 +34,7 @@ The long-term app should support:
 - Local backups before device writes
 - Safe, documented hardware operations
 
-Work Packages 1, 2, 3, 4, 5, and 6 are intentionally read-only and do not configure the physical keyboard. Work Package 7 adds local profile JSON editing only and still does not configure the physical keyboard. Work Package 8 adds dry-run write safety planning only and cannot execute hardware writes or generate real HID packets. Work Package 9 adds a controlled read experiment harness only; command execution remains disabled until an exact safe query is justified.
+Work Packages 1, 2, 3, 4, 5, and 6 are intentionally read-only and do not configure the physical keyboard. Work Package 7 adds local profile JSON editing only and still does not configure the physical keyboard. Work Package 8 adds dry-run write safety planning only and cannot execute hardware writes or generate real HID packets. Work Package 9 adds a controlled read experiment harness only. Work Package 10 keeps the device-info read/query disabled under Outcome B because exact safe-query evidence is missing.
 
 ---
 
@@ -170,6 +170,8 @@ For Work Package 7, Codex may implement a local-only editor for imported or save
 For Work Package 8, Codex may implement a Write Safety / Dry-Run Planner screen or section that uses a valid WP7 edited local profile as input, compares original/source vs edited profile data, shows abstract operation summaries by category, represents backup-before-write as a future safety gate, shows a device compatibility/safety checklist, exports a local dry-run planning file, and displays blocked execution status for future hardware-write actions. WP8 must not implement hardware writes, HID writes, `device.write`, `send_feature_report`, `set_report`, output reports, real HID packets, unknown HID command packets, keyboard configuration reads/writes, apply-to-keyboard actions, sync-to-keyboard actions, save-to-device behavior, real keymap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 source code/comments/structures/constants/packet code.
 
 For Work Package 9, Codex may implement a gated Controlled Read Experiment section under Protocol Research / Advanced. If an exact safe query is not justified from current project research notes, Codex must implement a disabled UI/safety harness only. WP9 may require AK680 V2 VID/PID detection, exact selected matching path/interface, warning copy, explicit confirmation modeling, disabled/not-implemented status, structured status/result display, local JSON status export, Diagnostics status, and tests for gating/result/export logic. WP9 must not implement keyboard setting writes, profile apply/sync/save-to-device behavior, key remap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, unknown HID commands, fuzzing, brute forcing, command scanning, multiple command experiments, background polling, continuous monitoring, automatic command execution, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 source code/comments/structures/constants/packet framing/implementation material.
+
+For Work Package 10, Codex may implement exactly one evidence-gated device-info read/query only if the exact query is already justified in `RESEARCH_NOTES.md` without guessing and without copying GPL-3.0 source code, comments, constants, structures, or packet implementation. If that evidence is missing, WP10 must choose Outcome B and keep execution disabled/not implemented. WP10 Outcome B may improve research notes, safety copy, Diagnostics, local export shape, and tests only. WP10 must not add Rust controlled-read commands, Tauri controlled-read invokes, HID report sends, fake response bytes, keyboard setting writes, profile apply/sync/save-to-device behavior, key remap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, unknown or guessed HID commands, fuzzing, brute forcing, command scanning, multiple command experiments, background polling, continuous monitoring, automatic command execution, arbitrary command entry, raw command consoles, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 material.
 
 Any future hardware-write package must include:
 
@@ -680,6 +682,71 @@ Command execution is disabled/not implemented because current project research n
 - The harness must not fabricate response bytes.
 - The harness must not add Rust or Tauri command execution paths.
 - Future query work must remain one controlled read/query only, run once per explicit confirmed user action, with short timeout and structured success/error/timeout.
+
+---
+
+## 7i. Work Package 10 Scope
+
+### Goal
+
+Evaluate whether the WP9 harness can safely enable exactly one device-info read/query, then either implement that one query if already justified or keep it disabled when evidence is insufficient.
+
+### Current Outcome
+
+WP10 chooses Outcome B. Current project research notes do not document the exact HID report type, report ID, request bytes or command framing, expected response length/format, or proof that a device-info query is read/query-only and not a keyboard setting write.
+
+### In Scope
+
+- Preserve Work Package 1 through Work Package 9 behavior
+- Keep command execution disabled/not implemented
+- Document missing evidence in `RESEARCH_NOTES.md`
+- Make UI, Diagnostics, and export status clearly report Outcome B
+- Report no Rust controlled-read command, no Tauri controlled-read invoke, no HID report send, and no fake response bytes
+- Keep AK680 V2 VID/PID and exact selected path/interface gates modeled for future work
+- Add practical tests for disabled state, missing evidence, safety gates, and export shape
+- Update README.md, PROJECT_PLAYBOOK.md, RESEARCH_NOTES.md, and CHANGELOG.md
+
+### Out of Scope
+
+- Keyboard setting writes
+- Applying profiles to keyboard
+- Syncing profiles to keyboard
+- Save-to-device behavior
+- Key remap writes
+- RGB writes
+- RT/actuation writes
+- SOCD writes
+- Macro writes
+- Firmware flashing
+- Calibration
+- Unknown or guessed HID commands
+- Fuzzing
+- Brute forcing
+- Command scanning
+- Multiple command experiments
+- Background polling
+- Continuous monitoring
+- Automatic command execution on app launch or screen open
+- Command execution without explicit user action
+- Command execution on wrong VID/PID
+- Command execution without selected target interface/path
+- Arbitrary command entry
+- Raw command consoles
+- Cloud sync
+- User accounts
+- Remote upload
+- Database services
+- Release publishing
+- Electron wrapper
+- Embedded AJAZZ website
+- Copied GPL-3.0 source code, comments, constants, structures, packet framing, or implementation material
+
+### Design Rules
+
+- Outcome B must include no command execution path.
+- The disabled harness must not fabricate response bytes.
+- Docs and UI must not imply that a device-info query exists.
+- Future Outcome A work must first document one exact query and explain why it is read/query-only, then pass Red Team review.
 
 ---
 

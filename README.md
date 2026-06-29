@@ -12,7 +12,7 @@ AK680 Studio is local-only and read-only with respect to keyboard hardware.
 - Saved profiles and backups stay on this machine.
 - Local editor changes affect exported or saved local profile JSON only.
 - Dry-run write safety plans are previews only and send no packets.
-- Controlled Read Experiment is a disabled safety harness only until an exact safe query is justified.
+- Controlled Read Experiment remains disabled under WP10 Outcome B because an exact safe device-info query is not justified yet.
 - HID detection enumerates safe metadata only.
 - No hardware writes are implemented.
 - No apply, sync, save-to-device, firmware flashing, calibration, cloud sync, user account, remote upload, or database feature is included.
@@ -38,7 +38,7 @@ AK680 Studio is local-only and read-only with respect to keyboard hardware.
 - Write Safety / Dry-Run Planner for abstract original-vs-edited operation summaries.
 - Device compatibility and safety checklist with backup-before-write future gate.
 - Local dry-run plan export as JSON.
-- Controlled Read Experiment harness under Protocol Research with manual gating, target path/interface selection, disabled execution state, and local status export.
+- Controlled Read Experiment harness under Protocol Research with manual gating, target path/interface selection, WP10 disabled execution state, missing-evidence reporting, and local status export.
 - Protocol Research screen for safe HID metadata inspection and local diagnostics snapshot export.
 - Diagnostics and About screens with public-alpha safety status.
 
@@ -78,7 +78,9 @@ The planner does not generate real HID packets, command frames, report payloads,
 
 The Protocol Research screen includes a Controlled Read Experiment harness for future manual opt-in HID read/query research.
 
-Current WP9 status: command execution is disabled/not implemented. Current project research notes do not document an exact safe query, so AK680 Studio does not send any controlled read/query command in WP9.
+Current WP10 outcome: Outcome B, still disabled. Current project research notes do not document the exact HID report type, report ID, request bytes or command framing, expected response length/format, or evidence proving a device-info query is read/query-only and not a keyboard setting write.
+
+AK680 Studio therefore does not implement a Rust controlled-read command, does not expose a Tauri controlled-read invoke, does not send any HID report, and does not fabricate response bytes. The UI, Diagnostics, and exported status JSON report this disabled state honestly.
 
 The harness still models the required future safety gates:
 
@@ -89,6 +91,7 @@ The harness still models the required future safety gates:
 - No automatic execution on app launch or screen open
 - No fuzzing, brute forcing, command scanning, background polling, or continuous monitoring
 - Local JSON export of the disabled/status result
+- Missing-evidence reporting for the disabled device-info query gate
 
 This is not write support. It does not change keyboard settings, apply profiles, sync profiles, save to device, flash firmware, calibrate hardware, or upload data remotely.
 

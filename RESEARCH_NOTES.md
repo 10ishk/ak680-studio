@@ -56,6 +56,9 @@ The supplied sample export wraps most profile data in a top-level `profile` obje
 - WP9 Controlled Read Experiment is a disabled UI/safety harness only. Command execution is disabled pending safe justification because these research notes do not document an exact known safe AK680 V2 read/query.
 - The WP9 harness requires AK680 V2 VID/PID detection and exact selected matching path/interface before any future implemented query could run, but no query command is currently implemented.
 - WP9 status exports are local JSON only and may document disabled/not-implemented state without fabricating response bytes.
+- WP10 selected Outcome B for the evidence-gated device-info read query. The exact safe query cannot be justified from current project research notes without guessing.
+- WP10 missing evidence: exact HID report type, exact report ID if any, exact request bytes or command framing, expected response length, expected response format, and proof that the query is read/query-only rather than a keyboard setting write.
+- WP10 does not add a Rust controlled-read command, Tauri controlled-read invoke, HID report send, or fake response bytes. UI, Diagnostics, and export behavior report disabled/not-implemented state.
 - USB/wired mode is likely required for useful AK680 V2 HID enumeration.
 - Bluetooth configuration is not supported.
 - AK680 V2 is treated as proprietary HID, not QMK/VIA.
@@ -63,6 +66,7 @@ The supplied sample export wraps most profile data in a top-level `profile` obje
 - Native HID command framing for safe hardware writes is unknown.
 - Native HID command framing for safe controlled reads is unknown.
 - No exact safe HID read/query command has been justified for AK680 Studio.
+- No exact safe device-info HID read/query command has been justified for AK680 Studio.
 - Verification behavior after a hardware write is unknown.
 - Backup and restore semantics for device state are unknown.
 - Firmware flashing and calibration protocols are unknown and out of scope.
@@ -73,7 +77,8 @@ The supplied sample export wraps most profile data in a top-level `profile` obje
 - Identify a safe backup format before any write feature is proposed.
 - Design a Red Team plan for the smallest possible future hardware write.
 - Identify and document one exact safe read/query command before enabling any controlled command execution.
+- For a future device-info query, document the exact report type, report ID, request bytes/framing, response length/format, timeout expectation, target interface constraints, and read-only safety rationale before implementation.
 - Keep future read/query work manual opt-in, single-command only, path-gated, confirmed, and timeout-limited.
 - Require maintainer approval before adding hardware write code.
 
-Work Package 1 performs local JSON inspection only. Work Package 2 adds read-only HID enumeration only. Work Package 3 adds local-only profile storage, export, active selection, rename/delete, and read-only comparison. Work Package 4 hardens local-only profile library backup export/import and storage recovery. Work Package 5 prepares public alpha docs, safety messaging, templates, and check-only CI. Work Package 6 adds read-only protocol research metadata inspection and local diagnostics snapshots. Work Package 7 adds local-only profile JSON editing. Work Package 8 adds dry-run write safety planning without real packets. Work Package 9 adds a disabled controlled read experiment harness only. Hardware writes, unknown HID command packets, keyboard configuration reads/writes, cloud sync, remote upload, databases, release publishing, and user accounts remain out of scope.
+Work Package 1 performs local JSON inspection only. Work Package 2 adds read-only HID enumeration only. Work Package 3 adds local-only profile storage, export, active selection, rename/delete, and read-only comparison. Work Package 4 hardens local-only profile library backup export/import and storage recovery. Work Package 5 prepares public alpha docs, safety messaging, templates, and check-only CI. Work Package 6 adds read-only protocol research metadata inspection and local diagnostics snapshots. Work Package 7 adds local-only profile JSON editing. Work Package 8 adds dry-run write safety planning without real packets. Work Package 9 adds a disabled controlled read experiment harness only. Work Package 10 keeps the device-info read query disabled under Outcome B because exact safe-query evidence is missing. Hardware writes, unknown or guessed HID command packets, keyboard configuration reads/writes, cloud sync, remote upload, databases, release publishing, and user accounts remain out of scope.

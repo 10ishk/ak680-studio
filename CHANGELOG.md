@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased - Work Package 10
+
+- Selected Outcome B for the evidence-gated device-info read/query because current project research notes do not justify one exact safe query.
+- Kept command execution disabled/not implemented.
+- Added missing-evidence reporting for exact HID report type, report ID, request bytes/framing, expected response length/format, and read-only safety proof.
+- Updated Controlled Read Experiment UI, Diagnostics, and local status export to report WP10 disabled state honestly.
+- Added export fields confirming no Rust controlled-read command, no Tauri controlled-read invoke, no HID report send, and no fake response bytes.
+- Updated RESEARCH_NOTES.md, README.md, and PROJECT_PLAYBOOK.md with WP10 Outcome B scope and GPL boundary.
+- Added pure helper tests for Outcome B identity, disabled gates, missing evidence, and export shape.
+
+Known limitations:
+
+- No device-info HID read/query command is implemented in WP10.
+- Command execution remains disabled pending exact safe-query evidence.
+- No keyboard setting writes, apply/sync/save-to-device behavior, unknown or guessed HID commands, fuzzing, brute forcing, command scanning, background polling, firmware flashing, calibration, cloud sync, remote upload, database services, release publishing, or user accounts are included.
+
 ## Unreleased - Work Package 9
 
 - Added a Controlled Read Experiment section under Protocol Research.

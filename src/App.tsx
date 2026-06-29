@@ -1933,12 +1933,11 @@ function ProtocolResearch({
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
               <div>
-                <p className="font-bold text-ink">Experimental read/query harness, disabled pending safe justification</p>
+                <p className="font-bold text-ink">Evidence-gated device-info read harness, disabled pending exact query evidence</p>
                 <p className="mt-1 text-sm leading-6 text-slate-700">
-                  This area is for one future controlled manual opt-in HID read/query experiment. Current research notes
-                  do not justify an exact safe query, so command execution is not implemented. No setting changes are
-                  intended, nothing runs automatically, USB/wired mode is required for future experiments, and the
-                  keyboard should not be unplugged during any future confirmed experiment.
+                  WP10 selected Outcome B. Current research notes do not document the exact report type, report ID,
+                  request bytes, response format, or read-only proof for a safe device-info query, so command execution
+                  is not implemented. No Rust command, Tauri invoke, HID report send, or fake response bytes are present.
                 </p>
               </div>
             </div>
@@ -1971,14 +1970,27 @@ function ProtocolResearch({
                 <p className="font-semibold text-ink">Harness status</p>
                 <InfoGrid
                   items={[
+                    { label: "WP10 outcome", value: "Outcome B: disabled" },
+                    { label: "Query", value: controlledReadState.queryName },
                     { label: "Implementation", value: "Disabled / not implemented" },
                     { label: "Last status", value: controlledReadState.runStatus },
                     { label: "Selected target", value: controlledReadState.selectedInterface?.path ?? "None" },
                     { label: "Response length", value: controlledReadState.result?.responseLength ?? 0 },
+                    { label: "Missing evidence items", value: controlledReadState.missingEvidence.length },
                     { label: "Keyboard setting writes", value: "Not implemented" },
                   ]}
                 />
               </div>
+            </div>
+            <div className="mt-4 rounded border border-line bg-cloud p-4">
+              <p className="text-sm font-semibold text-ink">Missing evidence before any future device-info query</p>
+              <ul className="mt-2 grid gap-2 md:grid-cols-2">
+                {controlledReadState.missingEvidence.map((item) => (
+                  <li key={item} className="rounded border border-line bg-white px-3 py-2 text-sm text-slate-700">
+                    {item}
+                  </li>
+                ))}
+              </ul>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {controlledReadState.gates.map((gate) => (
@@ -2000,7 +2012,7 @@ function ProtocolResearch({
                 className="rounded border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 opacity-60"
                 title={controlledReadState.runDisabledReason}
               >
-                Run Controlled Read: Not Implemented
+                Run Device-Info Read: Not Implemented
               </button>
               <button
                 type="button"
@@ -2023,9 +2035,12 @@ function ProtocolResearch({
                 <InfoGrid
                   items={[
                     { label: "Status", value: controlledReadState.result.status },
+                    { label: "Outcome", value: controlledReadState.result.outcome },
+                    { label: "Query", value: controlledReadState.result.queryName },
                     { label: "Timestamp", value: formatTimestamp(controlledReadState.result.timestamp) },
                     { label: "Response length", value: controlledReadState.result.responseLength },
                     { label: "Hex bytes", value: controlledReadState.result.responseHex || "None" },
+                    { label: "Missing evidence items", value: controlledReadState.result.missingEvidence.length },
                     { label: "Message", value: controlledReadState.result.message },
                   ]}
                 />
@@ -2260,11 +2275,18 @@ function Diagnostics({
         <InfoGrid
           items={[
             { label: "Availability", value: "Harness only" },
+            { label: "WP10 outcome", value: "Outcome B: disabled / insufficient evidence" },
+            { label: "Query", value: controlledReadState.queryName },
             { label: "Implementation", value: "Disabled / not implemented" },
+            { label: "Device-info query evidence", value: "Insufficient" },
             { label: "Target detected", value: hidDetection.result?.targetDetected ? "Yes" : "No" },
             { label: "Selected path/interface", value: controlledReadState.selectedInterface?.path ?? "None" },
             { label: "Last run status", value: controlledReadState.runStatus },
             { label: "Response length", value: controlledReadState.result?.responseLength ?? 0 },
+            { label: "Missing evidence items", value: controlledReadState.missingEvidence.length },
+            { label: "Rust/Tauri command", value: "Not implemented" },
+            { label: "HID report send", value: "Not implemented" },
+            { label: "Fake response bytes", value: "Not included" },
             { label: "Keyboard setting writes", value: "Not implemented" },
             { label: "Apply/sync/save-to-device", value: "Not implemented" },
             { label: "Unknown commands", value: "Not sent" },

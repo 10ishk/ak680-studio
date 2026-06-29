@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   CONTROLLED_READ_DISABLED_REASON,
+  CONTROLLED_READ_OUTCOME,
+  CONTROLLED_READ_QUERY_NAME,
+  WP10_MISSING_DEVICE_INFO_EVIDENCE,
   createControlledReadExperimentState,
   createControlledReadExport,
   createDisabledControlledReadResult,
@@ -65,9 +68,21 @@ describe("controlled read experiment harness", () => {
     const state = createControlledReadExperimentState({ hidDetection: detection, selectedPath: "hid-path-a" });
 
     expect(state.implemented).toBe(false);
+    expect(state.outcome).toBe(CONTROLLED_READ_OUTCOME);
+    expect(state.queryName).toBe(CONTROLLED_READ_QUERY_NAME);
     expect(state.canRun).toBe(false);
     expect(state.runDisabledReason).toBe(CONTROLLED_READ_DISABLED_REASON);
-    expect(state.gates.find((gate) => gate.label === "Known safe query justified")?.status).toBe("blocked");
+    expect(state.missingEvidence).toEqual(WP10_MISSING_DEVICE_INFO_EVIDENCE);
+    expect(state.gates.find((gate) => gate.label === "Device-info query evidence")?.status).toBe("blocked");
+  });
+
+  it("keeps command execution disabled even when target and path gates pass", () => {
+    const state = createControlledReadExperimentState({ hidDetection: detection, selectedPath: "hid-path-a" });
+
+    expect(state.gates.find((gate) => gate.label === "AK680 V2 VID/PID detected")?.status).toBe("pass");
+    expect(state.gates.find((gate) => gate.label === "Exact target path/interface selected")?.status).toBe("pass");
+    expect(state.gates.find((gate) => gate.label === "Device-info query evidence")?.status).toBe("blocked");
+    expect(state.canRun).toBe(false);
   });
 
   it("creates an honest disabled result without fake bytes", () => {
@@ -77,6 +92,9 @@ describe("controlled read experiment harness", () => {
     });
 
     expect(result.status).toBe("disabled");
+    expect(result.outcome).toBe(CONTROLLED_READ_OUTCOME);
+    expect(result.queryName).toBe(CONTROLLED_READ_QUERY_NAME);
+    expect(result.missingEvidence).toEqual(WP10_MISSING_DEVICE_INFO_EVIDENCE);
     expect(result.responseLength).toBe(0);
     expect(result.responseHex).toBe("");
     expect(result.target?.path).toBe("hid-path-a");
@@ -97,11 +115,20 @@ describe("controlled read experiment harness", () => {
     expect(exported).toMatchObject({
       exportType: "ak680-controlled-read-experiment",
       implementationStatus: "disabled-not-implemented",
+      outcome: CONTROLLED_READ_OUTCOME,
+      queryName: CONTROLLED_READ_QUERY_NAME,
       resultStatus: "disabled",
       responseLength: 0,
       responseHex: "",
+      rustCommandImplemented: false,
+      tauriInvokeImplemented: false,
+      hidReportSendImplemented: false,
+      fakeResponseBytesIncluded: false,
     });
-    expect(JSON.stringify(exported)).not.toContain("fake");
-    expect(exported.safetyNotes.join(" ")).toContain("No HID read/query command is implemented");
+    expect(exported.fakeResponseBytesIncluded).toBe(false);
+    expect(exported.responseHex).toBe("");
+    expect(exported.missingEvidence).toEqual(WP10_MISSING_DEVICE_INFO_EVIDENCE);
+    expect(exported.safetyNotes.join(" ")).toContain("No Rust controlled-read command is implemented");
+    expect(exported.safetyNotes.join(" ")).toContain("No HID report send is implemented");
   });
 });

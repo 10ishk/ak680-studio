@@ -2,6 +2,7 @@ import type { HidDetectionResult, HidDeviceMetadata } from "../types/hid";
 
 export type ControlledReadRunStatus = "never-run" | "disabled" | "canceled" | "success" | "error" | "timeout";
 export type ControlledReadGateStatus = "pass" | "blocked" | "info";
+export type ControlledReadOutcome = "wp10-outcome-b-disabled-insufficient-evidence";
 
 export interface ControlledReadGate {
   label: string;
@@ -12,6 +13,9 @@ export interface ControlledReadGate {
 export interface ControlledReadExperimentState {
   implemented: false;
   implementationStatus: "disabled-not-implemented";
+  outcome: ControlledReadOutcome;
+  queryName: string;
+  missingEvidence: string[];
   selectedPath?: string;
   selectedInterface?: HidDeviceMetadata;
   canRun: false;
@@ -25,6 +29,9 @@ export interface ControlledReadResult {
   status: ControlledReadRunStatus;
   timestamp: string;
   implemented: false;
+  outcome: ControlledReadOutcome;
+  queryName: string;
+  missingEvidence: string[];
   target?: ControlledReadTargetSummary;
   responseLength: number;
   responseHex: string;
@@ -44,6 +51,13 @@ export interface ControlledReadExport {
   exportType: "ak680-controlled-read-experiment";
   timestamp: string;
   implementationStatus: "disabled-not-implemented";
+  outcome: ControlledReadOutcome;
+  queryName: string;
+  missingEvidence: string[];
+  rustCommandImplemented: false;
+  tauriInvokeImplemented: false;
+  hidReportSendImplemented: false;
+  fakeResponseBytesIncluded: false;
   target?: ControlledReadTargetSummary;
   resultStatus: ControlledReadRunStatus;
   responseLength: number;
@@ -52,8 +66,17 @@ export interface ControlledReadExport {
   safetyNotes: string[];
 }
 
+export const CONTROLLED_READ_QUERY_NAME = "Device-info read/query";
+export const CONTROLLED_READ_OUTCOME: ControlledReadOutcome = "wp10-outcome-b-disabled-insufficient-evidence";
 export const CONTROLLED_READ_DISABLED_REASON =
-  "Command execution is disabled pending a justified safe read/query. Current project research notes do not document an exact safe query.";
+  "Device-info read/query execution is disabled because current project research notes do not document an exact safe query.";
+export const WP10_MISSING_DEVICE_INFO_EVIDENCE = [
+  "Exact HID report type for a device-info query is not documented.",
+  "Exact report ID, if any, is not documented.",
+  "Exact request bytes or command framing are not documented.",
+  "Expected response length and response format are not documented.",
+  "Project research notes do not yet prove the query is read/query-only and not a keyboard setting write.",
+];
 
 export function createControlledReadExperimentState({
   hidDetection,
@@ -72,6 +95,9 @@ export function createControlledReadExperimentState({
   return {
     implemented: false,
     implementationStatus: "disabled-not-implemented",
+    outcome: CONTROLLED_READ_OUTCOME,
+    queryName: CONTROLLED_READ_QUERY_NAME,
+    missingEvidence: [...WP10_MISSING_DEVICE_INFO_EVIDENCE],
     selectedPath,
     selectedInterface,
     canRun: false,
@@ -97,6 +123,9 @@ export function createDisabledControlledReadResult({
     status: "disabled",
     timestamp: now.toISOString(),
     implemented: false,
+    outcome: CONTROLLED_READ_OUTCOME,
+    queryName: CONTROLLED_READ_QUERY_NAME,
+    missingEvidence: [...WP10_MISSING_DEVICE_INFO_EVIDENCE],
     target: selectedInterface ? summarizeControlledReadTarget(selectedInterface) : undefined,
     responseLength: 0,
     responseHex: "",
@@ -122,16 +151,27 @@ export function createControlledReadExport({
     exportType: "ak680-controlled-read-experiment",
     timestamp: now.toISOString(),
     implementationStatus: state.implementationStatus,
+    outcome: state.outcome,
+    queryName: state.queryName,
+    missingEvidence: [...state.missingEvidence],
+    rustCommandImplemented: false,
+    tauriInvokeImplemented: false,
+    hidReportSendImplemented: false,
+    fakeResponseBytesIncluded: false,
     target: result.target,
     resultStatus: result.status,
     responseLength: result.responseLength,
     responseHex: result.responseHex,
     message: result.message,
     safetyNotes: [
-      "Harness-only disabled state.",
-      "No HID read/query command is implemented in WP9.",
+      "WP10 Outcome B: disabled because exact device-info query evidence is insufficient.",
+      "No Rust controlled-read command is implemented.",
+      "No Tauri controlled-read invoke is implemented.",
+      "No HID report send is implemented.",
+      "No response bytes are fabricated.",
       "No keyboard settings are changed.",
       "This is not apply, sync, save-to-device, or write support.",
+      "No unknown or guessed HID commands are sent.",
       "No fuzzing, brute forcing, command scanning, background polling, or continuous monitoring is implemented.",
       "GPL-3.0 source code, packet framing, constants, and implementation material were not copied.",
     ],
@@ -171,7 +211,7 @@ function createControlledReadGates(
       detail: "Required before any future implemented read/query attempt. No confirmation can run a command in harness-only mode.",
     },
     {
-      label: "Known safe query justified",
+      label: "Device-info query evidence",
       status: "blocked",
       detail: CONTROLLED_READ_DISABLED_REASON,
     },

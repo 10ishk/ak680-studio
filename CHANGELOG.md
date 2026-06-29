@@ -9,6 +9,7 @@
 - Updated Diagnostics with protocol research status and no-unknown-command-packet safety status.
 - Added pure helper tests for matching interface filtering, missing metadata formatting, cautious interface inference, and snapshot generation.
 - Updated README.md, PROJECT_PLAYBOOK.md, and RESEARCH_NOTES.md with WP6 protocol assumptions and GPL behavior-only warnings.
+- Passed Red Team QA for Work Package 6.
 
 Known limitations:
 

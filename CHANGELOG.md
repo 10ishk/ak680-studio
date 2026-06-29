@@ -11,6 +11,7 @@
 - Updated Diagnostics with controlled read experiment status.
 - Updated RESEARCH_NOTES.md, README.md, and PROJECT_PLAYBOOK.md with WP9 disabled-harness scope and safety boundaries.
 - Added pure helper tests for gating, selected path/interface requirement, disabled state, hex formatting, and export shape.
+- Passed Red Team QA for Work Package 9.
 
 Known limitations:
 

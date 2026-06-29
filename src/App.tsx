@@ -11,6 +11,7 @@ import {
   Lightbulb,
   ListChecks,
   PanelsTopLeft,
+  ClipboardCheck,
   ShieldCheck,
   SlidersHorizontal,
   SquareStack,
@@ -61,6 +62,7 @@ import {
   setLightingValue,
   validateEditorSession,
 } from "./lib/localEditor";
+import { createDryRunExport, createDryRunPlan, summarizeOperations } from "./lib/dryRunPlanner";
 import {
   PROTOCOL_ASSUMPTIONS,
   PROTOCOL_SAFETY_STATUS,
@@ -74,12 +76,14 @@ import type { HidDetectionResult, HidDetectionState } from "./types/hid";
 import type { LocalProfileStorageState, LocalProfileStore, SavedLocalProfile } from "./types/localProfile";
 import type { AjazzProfile, ImportedProfile, KeyboardKey } from "./types/profile";
 import type { EditorDiffSummary, EditorValidation, LocalEditorSession } from "./lib/localEditor";
+import type { DryRunPlan } from "./lib/dryRunPlanner";
 
 type Screen =
   | "dashboard"
   | "device"
   | "profiles"
   | "editor"
+  | "write-safety"
   | "import"
   | "inspector"
   | "layout"
@@ -97,6 +101,7 @@ const navigation: Array<{ id: Screen; label: string; icon: typeof Home }> = [
   { id: "device", label: "Device", icon: Cpu },
   { id: "profiles", label: "Profiles", icon: SquareStack },
   { id: "editor", label: "Local Editor", icon: SlidersHorizontal },
+  { id: "write-safety", label: "Write Safety", icon: ClipboardCheck },
   { id: "import", label: "Profile Import", icon: FileJson },
   { id: "inspector", label: "Profile Inspector", icon: PanelsTopLeft },
   { id: "layout", label: "Keyboard Layout", icon: Keyboard },
@@ -125,15 +130,30 @@ export default function App() {
     initialLocalProfileLoad.error ? "recovered" : "healthy",
   );
   const profile = importedProfile.validation.valid ? importedProfile.profile : undefined;
-  const localProfileStorage: LocalProfileStorageState = {
-    schemaVersion: LOCAL_PROFILE_SCHEMA_VERSION,
-    profiles: localProfileStore.profiles,
-    activeProfileId: localProfileStore.activeProfileId,
-    storageType: "Browser localStorage",
-    storageHealth,
-    lastStorageError: storageError,
-    lastBackupMessage: backupMessage,
-  };
+  const localProfileStorage: LocalProfileStorageState = useMemo(
+    () => ({
+      schemaVersion: LOCAL_PROFILE_SCHEMA_VERSION,
+      profiles: localProfileStore.profiles,
+      activeProfileId: localProfileStore.activeProfileId,
+      storageType: "Browser localStorage",
+      storageHealth,
+      lastStorageError: storageError,
+      lastBackupMessage: backupMessage,
+    }),
+    [backupMessage, localProfileStore.activeProfileId, localProfileStore.profiles, storageError, storageHealth],
+  );
+  const dryRunPlan = useMemo(
+    () =>
+      createDryRunPlan({
+        editorSession,
+        editorValidation,
+        hidDetection,
+        localProfileStorage,
+        appVersion: APP_VERSION,
+        protocolAssumptions: PROTOCOL_ASSUMPTIONS,
+      }),
+    [editorSession, editorValidation, hidDetection, localProfileStorage],
+  );
 
   useEffect(() => {
     try {
@@ -361,6 +381,22 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
+  function exportDryRunPlan() {
+    if (!editorSession || !editorValidation.valid) {
+      return;
+    }
+
+    const exportedPlan = createDryRunExport(dryRunPlan);
+    const json = JSON.stringify(exportedPlan, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ak680-dry-run-plan-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="min-h-screen bg-cloud text-ink">
       <div className="grid min-h-screen lg:grid-cols-[260px_1fr]">
@@ -372,7 +408,7 @@ export default function App() {
               </div>
               <div>
                 <p className="text-lg font-bold">AK680 Studio</p>
-                <p className="text-xs text-slate-600">Public alpha, read-only</p>
+                <p className="text-xs text-slate-600">Public alpha, hardware read-only</p>
               </div>
             </div>
           </div>
@@ -436,6 +472,15 @@ export default function App() {
               onUpdateExisting={updateEditedSavedProfile}
             />
           )}
+          {activeScreen === "write-safety" && (
+            <WriteSafety
+              dryRunPlan={dryRunPlan}
+              hidDetection={hidDetection}
+              onExportPlan={exportDryRunPlan}
+              onOpenEditor={() => setActiveScreen("editor")}
+              onRefreshDetection={refreshHidDetection}
+            />
+          )}
           {activeScreen === "import" && (
             <ProfileImport
               importedProfile={importedProfile}
@@ -466,6 +511,7 @@ export default function App() {
               editorSession={editorSession}
               editorValidation={editorValidation}
               editorDiff={editorDiff}
+              dryRunPlan={dryRunPlan}
             />
           )}
           {activeScreen === "about" && <About />}
@@ -971,6 +1017,223 @@ function Timestamp({ label, value }: { label: string; value?: string }) {
       <p className="mt-1 break-words text-sm text-slate-700">{formatTimestamp(value)}</p>
     </div>
   );
+}
+
+function WriteSafety({
+  dryRunPlan,
+  hidDetection,
+  onExportPlan,
+  onOpenEditor,
+  onRefreshDetection,
+}: {
+  dryRunPlan: DryRunPlan;
+  hidDetection: HidDetectionState;
+  onExportPlan: () => void;
+  onOpenEditor: () => void;
+  onRefreshDetection: () => Promise<void>;
+}) {
+  const exportDisabled = dryRunPlan.status === "no-input" || dryRunPlan.status === "invalid";
+
+  return (
+    <>
+      <PageHeader title="Write Safety" eyebrow="Dry-run planner" />
+      <Section title="Dry-Run Warning">
+        <div className="rounded border border-copper/40 bg-copper/10 p-5">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
+            <div>
+              <p className="font-bold text-ink">Dry-run only: no packets are sent and the keyboard is not changed</p>
+              <p className="mt-1 text-sm leading-6 text-slate-700">
+                This screen previews abstract operation categories from the WP7 local editor. It exports local planning
+                JSON only. Real hardware writes require a future work package, backup-before-write design, explicit
+                maintainer approval, and Red Team review.
+              </p>
+            </div>
+          </div>
+        </div>
+      </Section>
+      <Section title="Planner Input">
+        <div className="rounded border border-line bg-white p-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-lg font-bold text-ink">{getDryRunStatusTitle(dryRunPlan)}</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Source: {dryRunPlan.sourceLabel}. {summarizeOperations(dryRunPlan.operations)}
+              </p>
+              {dryRunPlan.validation.errors.length > 0 && (
+                <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-red-700">
+                  {dryRunPlan.validation.errors.map((error) => (
+                    <li key={error}>{error}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={onOpenEditor}
+                className="rounded border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:bg-cloud"
+              >
+                Open Local Editor
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void onRefreshDetection();
+                }}
+                disabled={hidDetection.status === "checking"}
+                className="rounded border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:bg-cloud disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {hidDetection.status === "checking" ? "Refreshing..." : "Refresh Detection"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Section>
+      {dryRunPlan.status === "no-input" ? (
+        <EmptyState message="No active WP7 local edit session is available. Start a valid edit in Local Editor to generate a dry-run plan." />
+      ) : (
+        <>
+          <Section title="Original vs Edited Profile">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <ProfileSummaryPanel title="Original/source profile" summary={dryRunPlan.originalProfile} />
+              <ProfileSummaryPanel title="Edited local profile" summary={dryRunPlan.editedProfile} />
+            </div>
+          </Section>
+          <Section title="Abstract Operation Summary">
+            <OperationSummaryTable operations={dryRunPlan.operations} />
+          </Section>
+          <Section title="Device Compatibility and Safety Checklist">
+            <ChecklistList checklist={dryRunPlan.checklist} />
+          </Section>
+          <Section title="Backup-Before-Write Future Gate">
+            <div className="rounded border border-line bg-white p-5 text-sm leading-6 text-slate-700">
+              A current local backup is required before any future hardware-write work. In WP8 this is a planning gate
+              only: backup status does not unlock writing, and hardware write support remains not implemented.
+            </div>
+          </Section>
+          <Section title="Planner Actions">
+            <div className="flex flex-wrap gap-2 rounded border border-line bg-white p-5">
+              <button
+                type="button"
+                onClick={onExportPlan}
+                disabled={exportDisabled}
+                className="rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Export Dry-Run Plan
+              </button>
+              <button
+                type="button"
+                disabled
+                className="rounded border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 opacity-60"
+              >
+                Future Hardware Write: Not Implemented
+              </button>
+            </div>
+          </Section>
+        </>
+      )}
+    </>
+  );
+}
+
+function ProfileSummaryPanel({ title, summary }: { title: string; summary?: DryRunPlan["originalProfile"] }) {
+  if (!summary) {
+    return <EmptyState message={`${title} is not available.`} />;
+  }
+
+  return (
+    <div className="rounded border border-line bg-white p-5">
+      <h3 className="mb-3 text-base font-bold text-ink">{title}</h3>
+      <InfoGrid
+        items={[
+          { label: "Profile name", value: summary.profileName },
+          { label: "Device ID", value: summary.deviceId },
+          { label: "Keys", value: summary.keyCount },
+          { label: "User key overrides", value: summary.userKeyCount },
+          { label: "RT records", value: summary.rtRecords },
+          { label: "Macro records", value: summary.macroRecords },
+        ]}
+      />
+    </div>
+  );
+}
+
+function OperationSummaryTable({ operations }: { operations: DryRunPlan["operations"] }) {
+  if (operations.length === 0) {
+    return <EmptyState message="No abstract operations are available until a local edit session exists." />;
+  }
+
+  return (
+    <div className="overflow-x-auto rounded border border-line bg-white">
+      <table className="min-w-full border-collapse text-left text-sm">
+        <thead className="bg-cloud text-xs uppercase tracking-wide text-moss">
+          <tr>
+            <th className="border-b border-line px-3 py-3">Category</th>
+            <th className="border-b border-line px-3 py-3">Changed</th>
+            <th className="border-b border-line px-3 py-3">Count</th>
+            <th className="border-b border-line px-3 py-3">Abstract summary</th>
+          </tr>
+        </thead>
+        <tbody>
+          {operations.map((operation) => (
+            <tr key={operation.category}>
+              <td className="border-b border-line px-3 py-3 font-semibold">{operation.label}</td>
+              <td className="border-b border-line px-3 py-3">{operation.changed ? "Yes" : "No"}</td>
+              <td className="border-b border-line px-3 py-3">{operation.changeCount}</td>
+              <td className="border-b border-line px-3 py-3">{operation.summary}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ChecklistList({ checklist }: { checklist: DryRunPlan["checklist"] }) {
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      {checklist.map((item) => (
+        <div key={item.label} className="rounded border border-line bg-white p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-semibold text-ink">{item.label}</p>
+            <span className={`rounded border px-2 py-1 text-xs font-semibold uppercase ${getChecklistClass(item.status)}`}>
+              {item.status}
+            </span>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-slate-600">{item.detail}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function getChecklistClass(status: DryRunPlan["checklist"][number]["status"]) {
+  switch (status) {
+    case "pass":
+      return "border-moss/40 bg-moss/10 text-moss";
+    case "blocked":
+      return "border-red-300 bg-red-50 text-red-700";
+    case "warn":
+      return "border-copper/40 bg-copper/10 text-copper";
+    case "info":
+    default:
+      return "border-line bg-cloud text-slate-700";
+  }
+}
+
+function getDryRunStatusTitle(plan: DryRunPlan) {
+  switch (plan.status) {
+    case "ready":
+      return "Valid dry-run plan ready for local export";
+    case "no-changes":
+      return "Valid local profile with no detected changes";
+    case "invalid":
+      return "Dry-run plan blocked by invalid local edit";
+    case "no-input":
+    default:
+      return "No local edited profile selected";
+  }
 }
 
 function LocalEditor({
@@ -1680,6 +1943,7 @@ function Diagnostics({
   editorSession,
   editorValidation,
   editorDiff,
+  dryRunPlan,
 }: {
   importedProfile: ImportedProfile;
   hidDetection: HidDetectionState;
@@ -1687,6 +1951,7 @@ function Diagnostics({
   editorSession?: LocalEditorSession;
   editorValidation: EditorValidation;
   editorDiff: EditorDiffSummary;
+  dryRunPlan: DryRunPlan;
 }) {
   const profile = importedProfile.validation.valid ? importedProfile.profile : undefined;
   const hidStatus = getHidStatusText(hidDetection);
@@ -1711,6 +1976,8 @@ function Diagnostics({
       "Local profile storage only",
       "No unknown HID command packets",
       "Protocol Research uses metadata only",
+      "Dry-run planner sends no packets",
+      "Dry-run execution is blocked",
     ],
     [],
   );
@@ -1790,6 +2057,24 @@ function Diagnostics({
             { label: "Lighting status", value: editorDiff.lightingStatus },
             { label: "Macro status", value: editorDiff.macroStatus },
             { label: "Keyboard hardware changes", value: "Not implemented" },
+          ]}
+        />
+      </Section>
+      <Section title="Dry-Run Planner Status">
+        <InfoGrid
+          items={[
+            { label: "Planner availability", value: "Write Safety dry-run planner" },
+            { label: "Active edited profile source", value: dryRunPlan.sourceLabel },
+            { label: "Plan status", value: getDryRunStatusTitle(dryRunPlan) },
+            { label: "Validation", value: dryRunPlan.validation.valid ? "Valid" : "Blocked or unavailable" },
+            { label: "Operation summary", value: summarizeOperations(dryRunPlan.operations) },
+            {
+              label: "Checklist blocked items",
+              value: dryRunPlan.checklist.filter((item) => item.status === "blocked").length,
+            },
+            { label: "No packets sent", value: "Confirmed" },
+            { label: "Hardware writes", value: "Not implemented" },
+            { label: "Execution", value: dryRunPlan.execution.status },
           ]}
         />
       </Section>

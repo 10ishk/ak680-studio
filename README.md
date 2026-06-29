@@ -1,6 +1,6 @@
 # AK680 Studio
 
-AK680 Studio is an unofficial, open-source native desktop public alpha for inspecting AJAZZ AK680 V2 profile exports, detecting the target keyboard with read-only HID metadata, managing local saved profile backups, and editing imported profile JSON locally.
+AK680 Studio is an unofficial, open-source native desktop public alpha for inspecting AJAZZ AK680 V2 profile exports, detecting the target keyboard with read-only HID metadata, managing local saved profile backups, editing imported profile JSON locally, and previewing future write safety plans without touching the keyboard.
 
 This project is not affiliated with, endorsed by, or maintained by AJAZZ. The official vendor tooling remains the supported configuration path until any native hardware-write behavior is researched, documented, reviewed, and explicitly approved in a future work package.
 
@@ -11,6 +11,7 @@ AK680 Studio is local-only and read-only with respect to keyboard hardware.
 - Profile imports are parsed locally.
 - Saved profiles and backups stay on this machine.
 - Local editor changes affect exported or saved local profile JSON only.
+- Dry-run write safety plans are previews only and send no packets.
 - HID detection enumerates safe metadata only.
 - No hardware writes are implemented.
 - No apply, sync, save-to-device, firmware flashing, calibration, cloud sync, user account, remote upload, or database feature is included.
@@ -33,6 +34,9 @@ AK680 Studio is local-only and read-only with respect to keyboard hardware.
 - Local Editor for cloned imported or saved profile data, including safe local-only keymap assignment names, RT/actuation values, SOCD/game-mode fields, and lighting fields.
 - Edited-vs-original summaries, validation, edited JSON export, save-as-new local profile, confirmed update of existing saved local profiles, and discard/reset edits.
 - Exact macro data preservation when using the Local Editor.
+- Write Safety / Dry-Run Planner for abstract original-vs-edited operation summaries.
+- Device compatibility and safety checklist with backup-before-write future gate.
+- Local dry-run plan export as JSON.
 - Protocol Research screen for safe HID metadata inspection and local diagnostics snapshot export.
 - Diagnostics and About screens with public-alpha safety status.
 
@@ -51,6 +55,22 @@ The editor supports local-only changes for:
 Missing optional sections are preserved gracefully. `macroDataList` is not edited and must remain exactly preserved for validation to pass.
 
 The Local Editor does not apply profiles to the keyboard, sync profiles to the keyboard, save anything to device memory, send HID packets, or read/write keyboard configuration through command packets.
+
+## Write Safety / Dry-Run Planner
+
+The Write Safety screen is a dry-run planner for future hardware-write work. It uses the active WP7 Local Editor session as input, compares the original/source profile to the edited local profile, and shows abstract operation summaries by category:
+
+- Keymap changes
+- RT/actuation changes
+- SOCD/game-mode changes
+- Lighting changes
+- Macro preservation status
+
+The planner includes a compatibility and safety checklist for AK680 V2 VID/PID detection, likely HID interface inference when safely available from read-only metadata, profile identity, edited profile validation, backup-before-write requirements, hardware write support status, and explicit no-packets-sent status.
+
+Dry-run export creates a local JSON planning file with timestamp, profile summaries, validation status, abstract operations, checklist, protocol assumptions, and a no-packets-sent statement.
+
+The planner does not generate real HID packets, command frames, report payloads, endpoint instructions, or executable hardware commands. Backup status is a future safety gate only; it does not unlock writing in WP8. Apply/write/sync/save-to-device execution is absent or disabled and marked not implemented.
 
 ## Protocol Research
 
@@ -92,6 +112,7 @@ Do not include private profile data, serial numbers, or local file paths in scre
 - TypeScript
 - Tailwind CSS
 - Local-only browser state, localStorage profile persistence, and local profile editing
+- Local-only dry-run planning and export
 
 ## Setup
 

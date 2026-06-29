@@ -9,7 +9,7 @@
 **Project type:** Open-source native desktop app  
 **Target device:** AJAZZ AK680 V2  
 **License:** Apache-2.0
-**Status:** Work Package 7 local-only profile editor
+**Status:** Work Package 8 dry-run write safety planner
 
 AK680 Studio is an unofficial, open-source, lightweight native desktop app for inspecting and eventually configuring the AJAZZ AK680 V2 keyboard.
 
@@ -34,7 +34,7 @@ The long-term app should support:
 - Local backups before device writes
 - Safe, documented hardware operations
 
-Work Packages 1, 2, 3, 4, 5, and 6 are intentionally read-only and do not configure the physical keyboard. Work Package 7 adds local profile JSON editing only and still does not configure the physical keyboard.
+Work Packages 1, 2, 3, 4, 5, and 6 are intentionally read-only and do not configure the physical keyboard. Work Package 7 adds local profile JSON editing only and still does not configure the physical keyboard. Work Package 8 adds dry-run write safety planning only and cannot execute hardware writes or generate real HID packets.
 
 ---
 
@@ -166,6 +166,8 @@ For Work Package 5, Codex may implement public alpha repo polish, in-app alpha/r
 For Work Package 6, Codex may implement a read-only Advanced / Protocol Research screen, safe HID metadata display, cautious likely research interface labeling based only on enumeration metadata, protocol assumptions, local diagnostics snapshot export, Diagnostics protocol research status, and practical pure helper tests only. WP6 must not implement hardware writes, HID writes, `device.write`, `send_feature_report`, `set_report`, output reports, unknown HID command packets, keyboard configuration reads requiring command packets, keyboard configuration writes, apply-to-keyboard actions, sync-to-keyboard actions, save-to-device behavior, key remapping editors, RGB editors, rapid trigger editors, SOCD editors, macro editors, firmware flashing, calibration, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 source code/comments/structures/constants/packet code.
 
 For Work Package 7, Codex may implement a local-only editor for imported or saved AK680 V2 profile JSON. WP7 may deep-clone a profile for editing, locally edit safe profile data such as key assignment names, RT/actuation values, SOCD/game-mode fields, and lighting fields, show edited-vs-original summaries, validate before local export/save/update, export edited JSON, save as a new local profile, update an existing saved local profile after confirmation, and discard/reset local edits. WP7 must preserve `macroDataList` exactly unless a later package explicitly implements macro editing. WP7 must not implement hardware writes, HID writes, `device.write`, `send_feature_report`, `set_report`, output reports, unknown HID command packets, keyboard configuration reads requiring command packets, keyboard configuration writes, apply-to-keyboard actions, sync-to-keyboard actions, save-to-device behavior, real keymap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 source code/comments/structures/constants/packet code.
+
+For Work Package 8, Codex may implement a Write Safety / Dry-Run Planner screen or section that uses a valid WP7 edited local profile as input, compares original/source vs edited profile data, shows abstract operation summaries by category, represents backup-before-write as a future safety gate, shows a device compatibility/safety checklist, exports a local dry-run planning file, and displays blocked execution status for future hardware-write actions. WP8 must not implement hardware writes, HID writes, `device.write`, `send_feature_report`, `set_report`, output reports, real HID packets, unknown HID command packets, keyboard configuration reads/writes, apply-to-keyboard actions, sync-to-keyboard actions, save-to-device behavior, real keymap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 source code/comments/structures/constants/packet code.
 
 Any future hardware-write package must include:
 
@@ -539,6 +541,77 @@ Add a local-only settings editor suite for imported or saved AK680 V2 profile da
 
 ---
 
+## 7g. Work Package 8 Scope
+
+### Goal
+
+Add a Write Safety Layer and Dry-Run Planner that prepares for future hardware writes without sending anything to the keyboard while preserving all accepted Work Package 1 through Work Package 7 behavior.
+
+### In Scope
+
+- Write Safety / Dry-Run Planner screen or section
+- Valid WP7 edited local profile as input
+- Safe no-input and invalid-edited-profile states
+- Original/source vs edited profile summaries
+- Validation status display
+- No-change state when no local edits exist
+- Abstract operation summaries by category:
+  - keymap changes
+  - RT/actuation changes
+  - SOCD/game-mode changes
+  - lighting changes
+  - macro preservation status
+- Backup-before-write future safety gate
+- Device compatibility/safety checklist:
+  - AK680 V2 VID/PID match from read-only HID detection
+  - likely HID interface if safely inferred from read-only metadata
+  - profile identity validation
+  - edited profile validation
+  - backup requirement
+  - hardware write support not implemented
+  - no packets sent
+- Local dry-run plan export as JSON or text
+- Blocked execution state for future apply/write/sync/save-to-device UX
+- Diagnostics dry-run planner status
+- Practical pure logic tests
+- Documentation updates
+
+### Out of Scope
+
+- Hardware writes
+- HID writes
+- `device.write`
+- `send_feature_report`
+- `set_report`
+- Output report behavior
+- Real HID packets
+- Unknown HID command packets
+- Keyboard configuration reads requiring command packets
+- Keyboard configuration writes
+- Applying profiles to keyboard
+- Syncing profiles to keyboard
+- Save-to-device behavior
+- Real keymap/RGB/RT/SOCD/macro writes
+- Firmware flashing
+- Calibration
+- Cloud sync
+- User accounts
+- Remote upload
+- Database services
+- Release publishing
+- Electron wrapper
+- Embedded AJAZZ website
+- Copied GPL-3.0 source code, comments, structures, constants, or packet code
+
+### Design Rules
+
+- Dry-run planning must be explicit that no packets are sent.
+- Operation summaries must remain abstract and must not become packet bytes, report payloads, endpoint instructions, or executable commands.
+- Backup-before-write remains a future safety gate and does not unlock writing in WP8.
+- The planner must not mutate WP7 editor state.
+
+---
+
 ## 8. Required Screens
 
 The current app must include these screens:
@@ -555,6 +628,7 @@ The current app must include these screens:
 10. Profiles
 11. Protocol Research
 12. Local Editor
+13. Write Safety / Dry-Run Planner
 
 All screens must remain read-only with respect to physical keyboard hardware.
 

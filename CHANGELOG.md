@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased - Work Package 8
+
+- Added a Write Safety / Dry-Run Planner screen for future hardware-write planning without sending anything to the keyboard.
+- Added valid WP7 edited local profile input handling, including no-input, invalid, no-change, and ready states.
+- Added original/source vs edited profile summaries.
+- Added abstract operation summaries for keymap, RT/actuation, SOCD/game-mode, lighting, and macro preservation status.
+- Added backup-before-write future safety gate messaging.
+- Added device compatibility and safety checklist covering VID/PID detection, likely HID interface status, profile identity, edited profile validation, backup requirement, hardware write support status, and no-packets-sent status.
+- Added local dry-run plan JSON export with timestamp, validation, abstract operations, safety checklist, protocol assumptions, and explicit no-packets-sent statement.
+- Added disabled blocked execution state for future hardware writes marked `Not implemented`.
+- Updated Diagnostics with dry-run planner status.
+- Added pure helper tests for dry-run no-input/invalid/no-change/ready states, abstract operations, checklist generation, export shape, and editor-state mutation isolation.
+- Updated README.md and PROJECT_PLAYBOOK.md with WP8 dry-run scope and safety boundaries.
+
+Known limitations:
+
+- WP8 plans and previews only; it cannot execute hardware writes.
+- Dry-run operations are abstract summaries, not real HID packets or device commands.
+- Backup-before-write is represented as a future safety gate only and does not unlock writing.
+- No hardware writes, HID writes, real HID packets, unknown HID command packets, keyboard configuration reads/writes, apply/sync/save-to-device behavior, firmware flashing, calibration, cloud sync, remote upload, database services, release publishing, or user accounts are included.
+
 ## Unreleased - Work Package 7
 
 - Added a Local Editor screen for imported or saved AK680 V2 profile JSON.

@@ -961,7 +961,7 @@ function RapidTrigger({ profile }: { profile?: AjazzProfile }) {
           items={[
             { label: "magneticAxisRT records", value: summarizeArray(profile?.magneticAxisRT) },
             { label: "magneticAxisRTConfig records", value: summarizeArray(profile?.magneticAxisRTConfig) },
-            { label: "Calibration", value: "Not available in Work Package 4" },
+            { label: "Calibration", value: "Calibration is not available in this public alpha" },
           ]}
         />
       </Section>
@@ -983,7 +983,7 @@ function Macros({ profile }: { profile?: AjazzProfile }) {
         items={[
           { label: "Macro records", value: summarizeArray(profile?.macroDataList) },
           { label: "Macro space size", value: profile?.deviceInfo?.macroSpaceSize ?? "Not present" },
-          { label: "Editing", value: "Not available in Work Package 4" },
+          { label: "Editing", value: "Editing is not available in this public alpha" },
         ]}
       />
       <Section title="Macro Data">

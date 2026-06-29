@@ -13,6 +13,7 @@
 - Updated Diagnostics with dry-run planner status.
 - Added pure helper tests for dry-run no-input/invalid/no-change/ready states, abstract operations, checklist generation, export shape, and editor-state mutation isolation.
 - Updated README.md and PROJECT_PLAYBOOK.md with WP8 dry-run scope and safety boundaries.
+- Passed Red Team QA for Work Package 8.
 
 Known limitations:
 

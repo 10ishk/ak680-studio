@@ -9,6 +9,7 @@
 - Updated Diagnostics with protocol evidence status.
 - Updated RESEARCH_NOTES.md, README.md, and PROJECT_PLAYBOOK.md with WP11 evidence-only scope and safety boundaries.
 - Added pure helper tests for dossier validation, completeness, allowed statuses, export shape, and no-execution guarantees.
+- Passed Red Team QA for Work Package 11.
 
 Known limitations:
 

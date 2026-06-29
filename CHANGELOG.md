@@ -10,6 +10,7 @@
 - Updated Diagnostics with local editor status.
 - Added pure helper tests for editor cloning, mutation isolation, diffing, validation, macro preservation, and edited export shape.
 - Updated README.md and PROJECT_PLAYBOOK.md with WP7 local-editor scope and safety boundaries.
+- Passed Red Team QA for Work Package 7.
 
 Known limitations:
 

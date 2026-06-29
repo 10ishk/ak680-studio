@@ -5,6 +5,10 @@ export interface HidDeviceMetadata {
   product?: string | null;
   serialNumber?: string | null;
   path?: string | null;
+  usagePage?: number | null;
+  usage?: number | null;
+  interfaceNumber?: number | null;
+  releaseNumber?: number | null;
   matchedTarget: boolean;
 }
 
@@ -21,4 +25,3 @@ export type HidDetectionState =
   | { status: "detected"; result: HidDetectionResult; error?: undefined }
   | { status: "not-detected"; result: HidDetectionResult; error?: undefined }
   | { status: "error"; result?: undefined; error: string };
-

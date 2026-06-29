@@ -9,7 +9,7 @@
 **Project type:** Open-source native desktop app  
 **Target device:** AJAZZ AK680 V2  
 **License:** Apache-2.0
-**Status:** Work Package 5 public alpha polish
+**Status:** Work Package 6 protocol research toolkit
 
 AK680 Studio is an unofficial, open-source, lightweight native desktop app for inspecting and eventually configuring the AJAZZ AK680 V2 keyboard.
 
@@ -34,7 +34,7 @@ The long-term app should support:
 - Local backups before device writes
 - Safe, documented hardware operations
 
-Work Packages 1, 2, 3, 4, and 5 are intentionally read-only and do not configure the physical keyboard.
+Work Packages 1, 2, 3, 4, 5, and 6 are intentionally read-only and do not configure the physical keyboard.
 
 ---
 
@@ -162,6 +162,8 @@ The UI must clearly state that profile management is local-only.
 For Work Package 4, Codex may implement local profile storage schema versioning, full saved-profile library backup export/import, merge restore, confirmed replace restore, duplicate profile ID handling, active profile preservation/reset behavior, corrupt or incompatible local storage recovery, clearer storage health diagnostics, and improved local import/export messages only. WP4 must not implement hardware writes, HID writes, keyboard configuration reads/writes, apply-to-keyboard actions, sync-to-keyboard actions, save-to-device behavior, key remapping editors, RGB editors, rapid trigger editors, SOCD editors, macro editors, firmware flashing, calibration, cloud sync, user accounts, remote upload, database services, installer/release packaging, Electron, or embedded AJAZZ website behavior.
 
 For Work Package 5, Codex may implement public alpha repo polish, in-app alpha/read-only messaging, an About screen or section, GitHub issue templates, a pull request template, check-only GitHub Actions CI, contribution guidance, security guidance, screenshot instructions, and copy/empty-state polish only. WP5 must not implement hardware writes, HID writes, keyboard configuration reads/writes, apply-to-keyboard actions, sync-to-keyboard actions, save-to-device behavior, key remapping editors, RGB editors, rapid trigger editors, SOCD editors, macro editors, firmware flashing, calibration, cloud sync, user accounts, remote upload, database services, installer/release packaging, release binary publishing, Electron, or embedded AJAZZ website behavior.
+
+For Work Package 6, Codex may implement a read-only Advanced / Protocol Research screen, safe HID metadata display, cautious likely research interface labeling based only on enumeration metadata, protocol assumptions, local diagnostics snapshot export, Diagnostics protocol research status, and practical pure helper tests only. WP6 must not implement hardware writes, HID writes, `device.write`, `send_feature_report`, `set_report`, output reports, unknown HID command packets, keyboard configuration reads requiring command packets, keyboard configuration writes, apply-to-keyboard actions, sync-to-keyboard actions, save-to-device behavior, key remapping editors, RGB editors, rapid trigger editors, SOCD editors, macro editors, firmware flashing, calibration, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 source code/comments/structures/constants/packet code.
 
 Any future hardware-write package must include:
 
@@ -415,6 +417,67 @@ Prepare AK680 Studio for a clean public alpha while preserving all accepted Work
 - Release binary publishing
 - Electron wrapper
 - Embedded AJAZZ website
+
+---
+
+## 7e. Work Package 6 Scope
+
+### Goal
+
+Add a read-only protocol research toolkit for safely inspecting AK680 V2 HID/device metadata and exporting local diagnostics snapshots while preserving all accepted Work Package 1 through Work Package 5 behavior.
+
+### In Scope
+
+- Advanced / Protocol Research screen or section
+- Display all detected matching AK680 V2 HID interfaces/paths
+- Safe HID metadata display: VID, PID, path, manufacturer, product, serial if available, usage page, usage, interface number, and release number where available
+- Cautious likely target research interface labeling only when safely inferred without probing
+- Research Mode warning covering read-only, experimental, no setting changes, no keyboard configuration writes, and no unknown HID command packets
+- Protocol assumptions in app and Diagnostics
+- Local protocol diagnostics snapshot export as JSON
+- Snapshot content with timestamp, app version/commit if available, matching HID metadata, imported profile summary, active saved profile summary, assumptions, and safety status
+- Diagnostics protocol research status
+- Practical tests for pure matching, formatting, inference, and snapshot logic
+- Documentation updates
+
+### Protocol Assumptions
+
+- Target VID/PID is `3141/32956`
+- USB/wired mode is likely required
+- Bluetooth configuration is not supported
+- AK680 V2 is treated as proprietary HID, not QMK/VIA
+- Future writes require a separate work package and Red Team plan
+- GPL-3.0 repositories may be studied for behavior only; do not copy code
+
+### Out of Scope
+
+- Hardware writes
+- HID writes
+- `device.write`
+- `send_feature_report`
+- `set_report`
+- Output report behavior
+- Unknown HID command packets
+- Keyboard configuration reads requiring command packets
+- Keyboard configuration writes
+- Applying profiles to keyboard
+- Syncing profiles to keyboard
+- Save-to-device behavior
+- Key remapping editor
+- RGB editor
+- Rapid trigger editor
+- SOCD editor
+- Macro editor
+- Firmware flashing
+- Calibration
+- Cloud sync
+- User accounts
+- Remote upload
+- Database services
+- Release publishing
+- Electron wrapper
+- Embedded AJAZZ website
+- Copied GPL-3.0 source code, comments, structures, constants, or packet code
 
 ---
 

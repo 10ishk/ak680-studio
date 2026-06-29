@@ -49,6 +49,14 @@ The supplied sample export wraps most profile data in a top-level `profile` obje
 - The project is licensed under Apache-2.0.
 - Public alpha issue templates should avoid requiring users to share sensitive serial numbers, HID paths, profile data, or local file paths.
 - Check-only CI is acceptable for WP5; release binary publishing remains out of scope.
+- WP6 Protocol Research uses existing HID enumeration metadata only and does not open devices, send packets, probe interfaces, or read keyboard configuration through command packets.
+- WP6 safe metadata includes VID, PID, path, manufacturer, product, serial when available, usage page, usage, interface number, and release number when available from `hidapi`.
+- WP6 likely research interface inference is cautious and based only on read-only metadata count.
+- WP6 protocol diagnostics snapshots are local JSON exports containing safe metadata, profile summaries, assumptions, and safety notes.
+- USB/wired mode is likely required for useful AK680 V2 HID enumeration.
+- Bluetooth configuration is not supported.
+- AK680 V2 is treated as proprietary HID, not QMK/VIA.
+- GPL-3.0 repositories may be studied only for behavior/protocol understanding; do not copy GPL source code, comments, structures, constants, or packet code into this Apache-2.0 project.
 - Native HID command framing for safe hardware writes is unknown.
 - Verification behavior after a hardware write is unknown.
 - Backup and restore semantics for device state are unknown.
@@ -61,4 +69,4 @@ The supplied sample export wraps most profile data in a top-level `profile` obje
 - Design a Red Team plan for the smallest possible future hardware write.
 - Require maintainer approval before adding hardware write code.
 
-Work Package 1 performs local JSON inspection only. Work Package 2 adds read-only HID enumeration only. Work Package 3 adds local-only profile storage, export, active selection, rename/delete, and read-only comparison. Work Package 4 hardens local-only profile library backup export/import and storage recovery. Work Package 5 prepares public alpha docs, safety messaging, templates, and check-only CI. Hardware writes, cloud sync, remote upload, databases, release publishing, and user accounts remain out of scope.
+Work Package 1 performs local JSON inspection only. Work Package 2 adds read-only HID enumeration only. Work Package 3 adds local-only profile storage, export, active selection, rename/delete, and read-only comparison. Work Package 4 hardens local-only profile library backup export/import and storage recovery. Work Package 5 prepares public alpha docs, safety messaging, templates, and check-only CI. Work Package 6 adds read-only protocol research metadata inspection and local diagnostics snapshots. Hardware writes, unknown HID command packets, keyboard configuration reads/writes, cloud sync, remote upload, databases, release publishing, and user accounts remain out of scope.

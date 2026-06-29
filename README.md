@@ -29,7 +29,29 @@ AK680 Studio is local-only and read-only with respect to keyboard hardware.
 - Full local profile library backup export/import with schema validation.
 - Merge and confirmed replace restore modes.
 - Duplicate profile ID handling and corrupt/incompatible storage recovery.
+- Protocol Research screen for safe HID metadata inspection and local diagnostics snapshot export.
 - Diagnostics and About screens with public-alpha safety status.
+
+## Protocol Research
+
+The Protocol Research screen is a read-only, experimental toolkit for future AK680 V2 protocol work.
+
+It can:
+
+- Show all detected AK680 V2 HID interfaces matching VID `3141` and PID `32956`.
+- Display safe HID metadata: VID, PID, path, manufacturer, product, serial if available, usage page, usage, interface number, and release number.
+- Cautiously mark a likely research interface only when exactly one matching interface is available from read-only metadata.
+- Export a local JSON diagnostics snapshot with timestamp, app version, matching HID metadata, imported profile summary, active local profile summary, protocol assumptions, and safety status.
+
+Protocol assumptions:
+
+- USB/wired mode is likely required for useful HID enumeration.
+- Bluetooth configuration is not supported.
+- AK680 V2 is treated as proprietary HID, not QMK/VIA.
+- Future writes require a separate work package and Red Team plan.
+- GPL-3.0 repositories may be studied for behavior only; do not copy code.
+
+The Protocol Research screen does not send unknown HID command packets, read keyboard configuration through command packets, write keyboard configuration, or change keyboard settings.
 
 ## Screenshots
 
@@ -125,6 +147,7 @@ Report unsafe hardware-control behavior, accidental write paths, or security iss
 
 - Hardware writes
 - HID write/send commands
+- Unknown HID command packets
 - Keyboard configuration reads/writes
 - Applying profiles to keyboard
 - Syncing profiles to keyboard

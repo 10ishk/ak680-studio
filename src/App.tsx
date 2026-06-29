@@ -19,6 +19,7 @@ import sampleProfile from "../fixtures/ak680-profile.sample.json";
 import { InfoGrid } from "./components/InfoGrid";
 import { JsonPreview } from "./components/JsonPreview";
 import { ReadOnlyPill } from "./components/ReadOnlyPill";
+import packageJson from "../package.json";
 import {
   TARGET_DEVICE_ID,
   TARGET_PID,
@@ -43,6 +44,15 @@ import {
   restoreLocalProfileBackup,
   serializeLocalProfileStore,
 } from "./lib/localProfiles";
+import {
+  PROTOCOL_ASSUMPTIONS,
+  PROTOCOL_SAFETY_STATUS,
+  createProtocolDiagnosticsSnapshot,
+  formatOptionalMetadata,
+  getMatchingResearchInterfaces,
+  inferLikelyResearchInterface,
+  summarizeProtocolDevice,
+} from "./lib/protocolResearch";
 import type { HidDetectionResult, HidDetectionState } from "./types/hid";
 import type { LocalProfileStorageState, LocalProfileStore, SavedLocalProfile } from "./types/localProfile";
 import type { AjazzProfile, ImportedProfile, KeyboardKey } from "./types/profile";
@@ -57,6 +67,7 @@ type Screen =
   | "lighting"
   | "rapid-trigger"
   | "macros"
+  | "protocol"
   | "diagnostics"
   | "about";
 
@@ -72,9 +83,12 @@ const navigation: Array<{ id: Screen; label: string; icon: typeof Home }> = [
   { id: "lighting", label: "Lighting", icon: Lightbulb },
   { id: "rapid-trigger", label: "Rapid Trigger", icon: Gauge },
   { id: "macros", label: "Macros", icon: Workflow },
+  { id: "protocol", label: "Protocol Research", icon: Activity },
   { id: "diagnostics", label: "Diagnostics", icon: ListChecks },
   { id: "about", label: "About", icon: Info },
 ];
+
+const APP_VERSION = packageJson.version ?? "Not available";
 
 export default function App() {
   const [initialLocalProfileLoad] = useState(loadInitialLocalProfileStore);
@@ -223,6 +237,23 @@ export default function App() {
     setBackupMessage([restore.message, ...validation.warnings, ...restore.warnings].join(" "));
   }
 
+  function exportProtocolDiagnosticsSnapshot() {
+    const snapshot = createProtocolDiagnosticsSnapshot({
+      hidDetection: hidDetection.result,
+      importedProfile,
+      localProfileStorage,
+      appVersion: APP_VERSION,
+    });
+    const json = JSON.stringify(snapshot, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ak680-protocol-research-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="min-h-screen bg-cloud text-ink">
       <div className="grid min-h-screen lg:grid-cols-[260px_1fr]">
@@ -293,6 +324,15 @@ export default function App() {
           {activeScreen === "lighting" && <Lighting profile={profile} />}
           {activeScreen === "rapid-trigger" && <RapidTrigger profile={profile} />}
           {activeScreen === "macros" && <Macros profile={profile} />}
+          {activeScreen === "protocol" && (
+            <ProtocolResearch
+              importedProfile={importedProfile}
+              hidDetection={hidDetection}
+              localProfileStorage={localProfileStorage}
+              onRefresh={refreshHidDetection}
+              onExportSnapshot={exportProtocolDiagnosticsSnapshot}
+            />
+          )}
           {activeScreen === "diagnostics" && (
             <Diagnostics
               importedProfile={importedProfile}
@@ -993,6 +1033,171 @@ function Macros({ profile }: { profile?: AjazzProfile }) {
   );
 }
 
+function ProtocolResearch({
+  importedProfile,
+  hidDetection,
+  localProfileStorage,
+  onRefresh,
+  onExportSnapshot,
+}: {
+  importedProfile: ImportedProfile;
+  hidDetection: HidDetectionState;
+  localProfileStorage: LocalProfileStorageState;
+  onRefresh: () => Promise<void>;
+  onExportSnapshot: () => void;
+}) {
+  const matchingInterfaces = getMatchingResearchInterfaces(hidDetection.result);
+  const likelyResearchInterface = inferLikelyResearchInterface(matchingInterfaces);
+  const profile = importedProfile.validation.valid ? importedProfile.profile : undefined;
+  const activeProfile = localProfileStorage.profiles.find((saved) => saved.id === localProfileStorage.activeProfileId);
+
+  return (
+    <>
+      <PageHeader title="Protocol Research" eyebrow="Read-only research mode" />
+      <Section title="Research Mode Warning">
+        <div className="rounded border border-copper/40 bg-copper/10 p-5">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
+            <div>
+              <p className="font-bold text-ink">Read-only, experimental, and metadata-only</p>
+              <p className="mt-1 text-sm leading-6 text-slate-700">
+                This screen is for protocol research notes and safe HID enumeration metadata only. It does not change
+                settings, write keyboard configuration, send unknown HID command packets, or probe the keyboard.
+              </p>
+            </div>
+          </div>
+        </div>
+      </Section>
+      <Section title="Research Actions">
+        <div className="rounded border border-line bg-white p-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="font-semibold text-ink">Local diagnostics snapshot</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Exports a local JSON file with timestamp, app version, matching HID metadata, safe profile summaries,
+                assumptions, and safety notes. No network or keyboard write is used.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  void onRefresh();
+                }}
+                disabled={hidDetection.status === "checking"}
+                className="inline-flex items-center justify-center rounded border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:bg-cloud disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {hidDetection.status === "checking" ? "Refreshing..." : "Refresh Metadata"}
+              </button>
+              <button
+                type="button"
+                onClick={onExportSnapshot}
+                className="inline-flex items-center justify-center rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss"
+              >
+                Export Snapshot
+              </button>
+            </div>
+          </div>
+        </div>
+      </Section>
+      <Section title="AK680 V2 Matching Interfaces">
+        {matchingInterfaces.length === 0 ? (
+          <EmptyState message="No matching AK680 V2 HID interfaces are available from the latest read-only enumeration. Refresh metadata with the keyboard connected in USB/wired mode if available." />
+        ) : (
+          <ProtocolInterfaceTable devices={matchingInterfaces} likelyResearchInterface={likelyResearchInterface} />
+        )}
+      </Section>
+      <Section title="Likely Research Interface">
+        <InfoGrid
+          items={[
+            {
+              label: "Inference",
+              value: likelyResearchInterface
+                ? "Likely only detected matching interface"
+                : "Not inferred; multiple or no matching interfaces are available",
+            },
+            { label: "Inference method", value: "Read-only metadata count only; no probing or packets" },
+            { label: "Matching interface count", value: matchingInterfaces.length },
+            { label: "Last HID status", value: getHidStatusText(hidDetection).title },
+          ]}
+        />
+      </Section>
+      <Section title="Protocol Assumptions">
+        <ul className="grid gap-2 md:grid-cols-2">
+          {PROTOCOL_ASSUMPTIONS.map((assumption) => (
+            <li key={assumption} className="rounded border border-line bg-white px-3 py-2 text-sm text-slate-700">
+              {assumption}
+            </li>
+          ))}
+        </ul>
+      </Section>
+      <Section title="Snapshot Preview Summary">
+        <InfoGrid
+          items={[
+            { label: "App version", value: APP_VERSION },
+            { label: "Imported profile", value: profile?.profileName ?? "No valid imported profile" },
+            { label: "Imported source", value: importedProfile.sourceName },
+            { label: "Active local profile", value: activeProfile?.displayName ?? "None selected" },
+            { label: "Safety notes", value: `${PROTOCOL_SAFETY_STATUS.length} read-only safety statements` },
+          ]}
+        />
+      </Section>
+    </>
+  );
+}
+
+function ProtocolInterfaceTable({
+  devices,
+  likelyResearchInterface,
+}: {
+  devices: HidDetectionResult["devices"];
+  likelyResearchInterface?: HidDetectionResult["devices"][number];
+}) {
+  return (
+    <div className="overflow-x-auto rounded border border-line bg-white">
+      <table className="min-w-full border-collapse text-left text-sm">
+        <thead className="bg-cloud text-xs uppercase tracking-wide text-moss">
+          <tr>
+            <th className="border-b border-line px-3 py-3">Research inference</th>
+            <th className="border-b border-line px-3 py-3">VID</th>
+            <th className="border-b border-line px-3 py-3">PID</th>
+            <th className="border-b border-line px-3 py-3">Usage page</th>
+            <th className="border-b border-line px-3 py-3">Usage</th>
+            <th className="border-b border-line px-3 py-3">Interface</th>
+            <th className="border-b border-line px-3 py-3">Release</th>
+            <th className="border-b border-line px-3 py-3">Manufacturer</th>
+            <th className="border-b border-line px-3 py-3">Product</th>
+            <th className="border-b border-line px-3 py-3">Serial</th>
+            <th className="border-b border-line px-3 py-3">Path</th>
+          </tr>
+        </thead>
+        <tbody>
+          {devices.map((device, index) => {
+            const summary = summarizeProtocolDevice(device, likelyResearchInterface);
+            return (
+              <tr key={`${device.vendorId}-${device.productId}-${device.path ?? index}`} className="align-top">
+                <td className="border-b border-line px-3 py-3 font-semibold">
+                  {summary.likelyResearchInterface ? "Likely research interface" : "Not inferred"}
+                </td>
+                <td className="border-b border-line px-3 py-3">{summary.vendorId}</td>
+                <td className="border-b border-line px-3 py-3">{summary.productId}</td>
+                <td className="border-b border-line px-3 py-3">{summary.usagePage}</td>
+                <td className="border-b border-line px-3 py-3">{summary.usage}</td>
+                <td className="border-b border-line px-3 py-3">{summary.interfaceNumber}</td>
+                <td className="border-b border-line px-3 py-3">{summary.releaseNumber}</td>
+                <td className="border-b border-line px-3 py-3">{summary.manufacturer}</td>
+                <td className="border-b border-line px-3 py-3">{summary.product}</td>
+                <td className="border-b border-line px-3 py-3">{summary.serialNumber}</td>
+                <td className="max-w-96 break-words border-b border-line px-3 py-3 text-xs">{summary.path}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function Diagnostics({
   importedProfile,
   hidDetection,
@@ -1004,6 +1209,7 @@ function Diagnostics({
 }) {
   const profile = importedProfile.validation.valid ? importedProfile.profile : undefined;
   const hidStatus = getHidStatusText(hidDetection);
+  const matchingInterfaces = getMatchingResearchInterfaces(hidDetection.result);
   const activeProfile = localProfileStorage.profiles.find((saved) => saved.id === localProfileStorage.activeProfileId);
   const safetyItems = useMemo(
     () => [
@@ -1022,6 +1228,8 @@ function Diagnostics({
       "No Electron wrapper",
       "HID enumeration only",
       "Local profile storage only",
+      "No unknown HID command packets",
+      "Protocol Research uses metadata only",
     ],
     [],
   );
@@ -1052,6 +1260,23 @@ function Diagnostics({
             { label: "Target VID", value: TARGET_VID },
             { label: "Target PID", value: TARGET_PID },
             { label: "Last error", value: hidDetection.status === "error" ? hidDetection.error : "None" },
+          ]}
+        />
+      </Section>
+      <Section title="Protocol Research Status">
+        <InfoGrid
+          items={[
+            { label: "Research mode", value: "Read-only metadata inspection" },
+            { label: "Matching AK680 V2 interfaces", value: matchingInterfaces.length },
+            {
+              label: "Likely research interface",
+              value: inferLikelyResearchInterface(matchingInterfaces)
+                ? "Likely only detected matching interface"
+                : "Not inferred",
+            },
+            { label: "Unknown HID command packets", value: "Not sent" },
+            { label: "Keyboard configuration writes", value: "Not implemented" },
+            { label: "Future write work", value: "Requires separate work package and Red Team plan" },
           ]}
         />
       </Section>
@@ -1141,6 +1366,10 @@ function DeviceTable({ devices }: { devices: HidDetectionResult["devices"] }) {
             <th className="border-b border-line px-3 py-3">Manufacturer</th>
             <th className="border-b border-line px-3 py-3">Product</th>
             <th className="border-b border-line px-3 py-3">Serial</th>
+            <th className="border-b border-line px-3 py-3">Usage page</th>
+            <th className="border-b border-line px-3 py-3">Usage</th>
+            <th className="border-b border-line px-3 py-3">Interface</th>
+            <th className="border-b border-line px-3 py-3">Release</th>
             <th className="border-b border-line px-3 py-3">Path</th>
           </tr>
         </thead>
@@ -1155,6 +1384,10 @@ function DeviceTable({ devices }: { devices: HidDetectionResult["devices"] }) {
               <td className="border-b border-line px-3 py-3">{device.manufacturer || "Not available"}</td>
               <td className="border-b border-line px-3 py-3">{device.product || "Not available"}</td>
               <td className="border-b border-line px-3 py-3">{device.serialNumber || "Not available"}</td>
+              <td className="border-b border-line px-3 py-3">{formatOptionalMetadata(device.usagePage)}</td>
+              <td className="border-b border-line px-3 py-3">{formatOptionalMetadata(device.usage)}</td>
+              <td className="border-b border-line px-3 py-3">{formatOptionalMetadata(device.interfaceNumber)}</td>
+              <td className="border-b border-line px-3 py-3">{formatOptionalMetadata(device.releaseNumber)}</td>
               <td className="max-w-96 break-words border-b border-line px-3 py-3 text-xs">
                 {device.path || "Not available"}
               </td>

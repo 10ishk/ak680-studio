@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased - Work Package 6
+
+- Added a read-only Protocol Research screen for safe AK680 V2 HID metadata inspection.
+- Added display of matching AK680 V2 HID interfaces/paths and optional HID metadata including usage page, usage, interface number, and release number where available.
+- Added cautious likely-research-interface labeling only when it can be inferred from read-only metadata count.
+- Added local protocol diagnostics snapshot export as JSON.
+- Updated Diagnostics with protocol research status and no-unknown-command-packet safety status.
+- Added pure helper tests for matching interface filtering, missing metadata formatting, cautious interface inference, and snapshot generation.
+- Updated README.md, PROJECT_PLAYBOOK.md, and RESEARCH_NOTES.md with WP6 protocol assumptions and GPL behavior-only warnings.
+
+Known limitations:
+
+- Protocol Research uses existing HID enumeration metadata only.
+- No hardware writes, HID writes, unknown HID command packets, keyboard configuration reads/writes, apply/sync/save-to-device behavior, editors, firmware flashing, calibration, cloud sync, remote upload, database services, release publishing, or user accounts are included.
+- Likely research interface is not inferred when multiple matching interfaces are present.
+
 ## Unreleased - Work Package 5
 
 - Added public alpha safety messaging in-app.

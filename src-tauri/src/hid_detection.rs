@@ -13,6 +13,10 @@ pub struct HidDeviceMetadata {
     pub product: Option<String>,
     pub serial_number: Option<String>,
     pub path: Option<String>,
+    pub usage_page: Option<u16>,
+    pub usage: Option<u16>,
+    pub interface_number: Option<i32>,
+    pub release_number: Option<u16>,
     pub matched_target: bool,
 }
 
@@ -44,6 +48,10 @@ pub fn enumerate_hid_devices() -> Result<HidDetectionResult, String> {
                 product: device.product_string().map(ToOwned::to_owned),
                 serial_number: device.serial_number().map(ToOwned::to_owned),
                 path: Some(device.path().to_string_lossy().into_owned()),
+                usage_page: Some(device.usage_page()),
+                usage: Some(device.usage()),
+                interface_number: Some(device.interface_number()),
+                release_number: Some(device.release_number()),
                 matched_target: matches_target_device(vendor_id, product_id),
             }
         })

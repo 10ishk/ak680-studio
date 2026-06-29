@@ -7,10 +7,10 @@
 - Added read-only screens for Dashboard, Device, Profile Import, Profile Inspector, Keyboard Layout, Lighting, Rapid Trigger, Macros, and Diagnostics.
 - Added AJAZZ AK680 V2 profile validation and local-only profile inspection.
 - Added `fixtures/ak680-profile.sample.json` as the sample profile fixture.
+- Passed Red Team source/docs QA for Work Package 1. Red Team could not run a local build because their environment had a DNS limitation.
 
 Known limitations:
 
 - No live hardware detection.
 - No hardware writes of any kind.
 - No firmware flashing, calibration, cloud sync, packaging, or release installer.
-

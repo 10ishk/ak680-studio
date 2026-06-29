@@ -1,0 +1,16 @@
+[package]
+name = "ak680-studio"
+version = "0.1.0"
+description = "Read-only native profile inspector for the AJAZZ AK680 V2 keyboard"
+authors = ["AK680 Studio contributors"]
+edition = "2021"
+
+[lib]
+name = "ak680_studio_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }

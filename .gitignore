@@ -8,6 +8,7 @@ dist-ssr/
 # Tauri and Rust build output
 src-tauri/target/
 target/
+src-tauri/gen/
 
 # Logs
 *.log
@@ -26,4 +27,3 @@ Thumbs.db
 # IDE files
 .idea/
 .vscode/
-

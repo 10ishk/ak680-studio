@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   compareSavedProfiles,
   countActiveMagneticAxis,
+  createLocalProfileBackup,
   createSavedLocalProfile,
   deleteSavedProfile,
   emptyLocalProfileStore,
+  parseLocalProfileBackup,
   parseLocalProfileStore,
   renameSavedProfile,
+  restoreLocalProfileBackup,
+  validateLocalProfileBackup,
 } from "./localProfiles";
 import type { ImportedProfile } from "../types/profile";
 import type { SavedLocalProfile } from "../types/localProfile";
@@ -103,5 +107,72 @@ describe("local profile manager helpers", () => {
   it("falls back to an empty store when local storage is empty", () => {
     expect(parseLocalProfileStore(null)).toEqual(emptyLocalProfileStore());
   });
-});
 
+  it("rejects corrupt local storage", () => {
+    expect(() => parseLocalProfileStore("{")).toThrow();
+  });
+
+  it("rejects incompatible local storage schema", () => {
+    expect(() => parseLocalProfileStore(JSON.stringify({ version: 999, profiles: [] }))).toThrow(
+      "Unsupported local profile storage schema.",
+    );
+  });
+
+  it("validates a full library backup", () => {
+    const saved = createSavedLocalProfile(importedProfile);
+    const backup = createLocalProfileBackup({ version: 1, profiles: [saved], activeProfileId: saved.id });
+    const result = validateLocalProfileBackup(backup);
+
+    expect(result.valid).toBe(true);
+    expect(result.backup?.profiles).toHaveLength(1);
+    expect(result.backup?.activeProfileId).toBe(saved.id);
+  });
+
+  it("rejects invalid backup JSON and wrong shapes", () => {
+    expect(parseLocalProfileBackup("{").valid).toBe(false);
+    expect(validateLocalProfileBackup([]).valid).toBe(false);
+    expect(validateLocalProfileBackup({ version: 1 }).valid).toBe(false);
+    expect(validateLocalProfileBackup({ version: 999, profiles: [] }).valid).toBe(false);
+  });
+
+  it("merge restore preserves existing profiles and re-keys duplicate IDs", () => {
+    const existing = createSavedLocalProfile(importedProfile);
+    const incoming = { ...createSavedLocalProfile(importedProfile), id: existing.id, displayName: "Incoming" };
+    const result = restoreLocalProfileBackup(
+      { version: 1, profiles: [existing], activeProfileId: existing.id },
+      { version: 1, exportedAt: "2026-06-29T00:00:00.000Z", profiles: [incoming], activeProfileId: incoming.id },
+      "merge",
+    );
+
+    expect(result.store.profiles).toHaveLength(2);
+    expect(new Set(result.store.profiles.map((profile) => profile.id)).size).toBe(2);
+    expect(result.store.activeProfileId).toBe(existing.id);
+    expect(result.warnings[0]).toContain("duplicate");
+  });
+
+  it("replace restore resets invalid active profile IDs safely", () => {
+    const incoming = createSavedLocalProfile(importedProfile);
+    const result = restoreLocalProfileBackup(
+      { version: 1, profiles: [], activeProfileId: "missing" },
+      { version: 1, exportedAt: "2026-06-29T00:00:00.000Z", profiles: [incoming], activeProfileId: "missing" },
+      "replace",
+    );
+
+    expect(result.store.profiles).toHaveLength(1);
+    expect(result.store.activeProfileId).toBeUndefined();
+  });
+
+  it("normalizes duplicate IDs inside a backup", () => {
+    const first = createSavedLocalProfile(importedProfile);
+    const second = { ...createSavedLocalProfile(importedProfile), id: first.id };
+    const result = validateLocalProfileBackup({
+      version: 1,
+      exportedAt: "2026-06-29T00:00:00.000Z",
+      profiles: [first, second],
+    });
+
+    expect(result.valid).toBe(true);
+    expect(new Set(result.backup?.profiles.map((profile) => profile.id)).size).toBe(2);
+    expect(result.warnings.join(" ")).toContain("Duplicate");
+  });
+});

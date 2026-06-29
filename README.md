@@ -1,6 +1,6 @@
 # AK680 Studio
 
-AK680 Studio is an unofficial, open-source native desktop app for inspecting AJAZZ AK680 V2 profile exports, detecting the target keyboard locally, and managing saved local profile backups. Work Package 3 adds a local-only profile manager while preserving the Work Package 1 profile inspector and Work Package 2 read-only HID detection.
+AK680 Studio is an unofficial, open-source native desktop app for inspecting AJAZZ AK680 V2 profile exports, detecting the target keyboard locally, and managing saved local profile backups. Work Package 4 hardens local profile library backup and restore behavior while preserving the Work Package 1 profile inspector, Work Package 2 read-only HID detection, and Work Package 3 local profile manager.
 
 This project is not affiliated with, endorsed by, or maintained by AJAZZ. The official vendor tooling remains the supported configuration path until native hardware-write behavior is researched, documented, and reviewed in a future work package.
 
@@ -105,6 +105,28 @@ Notes:
 - Comparison summarizes profile metadata and high-level section differences only.
 - No cloud sync, remote upload, database, or user account is used.
 
+## Work Package 4 Scope
+
+Included:
+
+- Local profile storage schema versioning.
+- Full saved-profile library backup export as JSON.
+- Full saved-profile library backup import and restore.
+- Backup shape validation before restore.
+- Merge restore mode that safely rekeys duplicate profile IDs.
+- Replace restore mode behind an explicit confirmation prompt.
+- Active profile preservation where safe and safe reset when needed.
+- Graceful fallback for corrupt or incompatible local storage.
+- Clear storage health and backup/import status in Diagnostics.
+- Practical tests for backup validation, restore modes, duplicate handling, and corrupt storage handling.
+
+Notes:
+
+- Backup and restore operate only on local saved profile data.
+- Replace restore changes the local saved-profile library only after confirmation.
+- Duplicate profile IDs are normalized before being stored.
+- Backup import does not upload data or talk to keyboard hardware.
+
 Out of scope:
 
 - Hardware writes
@@ -132,4 +154,4 @@ Out of scope:
 
 ## Safety
 
-Work Packages 1 through 3 are read-only with respect to keyboard hardware. The app does not include hardware write commands, save-to-device actions, apply-to-device actions, sync-to-device actions, HID feature report sends, keyboard configuration writes, firmware flashing, calibration, or background device sync.
+Work Packages 1 through 4 are read-only with respect to keyboard hardware. The app does not include hardware write commands, save-to-device actions, apply-to-device actions, sync-to-device actions, HID feature report sends, keyboard configuration reads or writes, firmware flashing, calibration, remote upload, database services, or background device sync.

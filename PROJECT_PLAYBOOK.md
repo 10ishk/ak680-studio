@@ -9,7 +9,7 @@
 **Project type:** Open-source native desktop app  
 **Target device:** AJAZZ AK680 V2  
 **License:** MIT, unless the maintainer chooses another permissive license before first public release  
-**Status:** Work Package 3 local profile manager
+**Status:** Work Package 4 backup hardening and import/export polish
 
 AK680 Studio is an unofficial, open-source, lightweight native desktop app for inspecting and eventually configuring the AJAZZ AK680 V2 keyboard.
 
@@ -34,7 +34,7 @@ The long-term app should support:
 - Local backups before device writes
 - Safe, documented hardware operations
 
-Work Packages 1, 2, and 3 are intentionally read-only and do not configure the physical keyboard.
+Work Packages 1, 2, 3, and 4 are intentionally read-only and do not configure the physical keyboard.
 
 ---
 
@@ -158,6 +158,8 @@ The UI must clearly state that Work Package 2 detection is read-only.
 For Work Package 3, Codex may implement local profile persistence, local export, active local profile selection, local rename/delete behavior, and read-only high-level comparison only. WP3 must not implement hardware writes, HID writes, keyboard configuration reads/writes, apply-to-keyboard actions, sync-to-keyboard actions, save-to-device behavior, key remapping editors, RGB editors, rapid trigger editors, SOCD editors, macro editors, firmware flashing, calibration, cloud sync, user accounts, Electron, or embedded AJAZZ website behavior.
 
 The UI must clearly state that profile management is local-only.
+
+For Work Package 4, Codex may implement local profile storage schema versioning, full saved-profile library backup export/import, merge restore, confirmed replace restore, duplicate profile ID handling, active profile preservation/reset behavior, corrupt or incompatible local storage recovery, clearer storage health diagnostics, and improved local import/export messages only. WP4 must not implement hardware writes, HID writes, keyboard configuration reads/writes, apply-to-keyboard actions, sync-to-keyboard actions, save-to-device behavior, key remapping editors, RGB editors, rapid trigger editors, SOCD editors, macro editors, firmware flashing, calibration, cloud sync, user accounts, remote upload, database services, installer/release packaging, Electron, or embedded AJAZZ website behavior.
 
 Any future hardware-write package must include:
 
@@ -292,6 +294,54 @@ Comparison may summarize:
 - `macroDataList` count
 - `magneticAxisRT` active count
 - `magneticAxisRTConfig.currentModeName`
+
+### Out of Scope
+
+- Hardware writes
+- HID writes
+- Keyboard configuration reads/writes
+- Applying profiles to keyboard
+- Syncing profiles to keyboard
+- Save-to-device behavior
+- Key remapping editor
+- RGB editor
+- Rapid trigger editor
+- SOCD editor
+- Macro editor
+- Firmware flashing
+- Calibration
+- Cloud sync
+- User accounts
+- Remote upload
+- Database services
+- Installer/release packaging
+- Electron wrapper
+- Embedded AJAZZ website
+
+---
+
+## 7c. Work Package 4 Scope
+
+### Goal
+
+Add backup hardening and import/export UX polish for local saved profiles while preserving all accepted Work Package 1, Work Package 2, and Work Package 3 behavior.
+
+### In Scope
+
+- Local profile storage schema versioning
+- Full saved-profile library backup export as JSON
+- Full saved-profile library backup import/restore
+- Backup file shape validation before restore
+- Merge restore mode
+- Replace restore mode only after confirmation
+- Safe duplicate profile ID handling
+- Active profile selection preservation where safe
+- Safe active profile reset when needed
+- Graceful recovery from corrupt or incompatible local storage
+- Clear storage health/status in Diagnostics
+- Improved import/export success and error messages
+- Practical tests for backup validation, merge/replace behavior, duplicate handling, and corrupt storage handling
+- Documentation updates
 
 ### Out of Scope
 

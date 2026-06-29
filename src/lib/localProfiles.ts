@@ -1,8 +1,22 @@
 import { countUserKeys, getDeviceIdentity, summarizeArray } from "./profileValidation";
 import type { ImportedProfile, JsonRecord } from "../types/profile";
-import type { ComparisonRow, LocalProfileStore, SavedLocalProfile } from "../types/localProfile";
+import type { ComparisonRow, LocalProfileBackup, LocalProfileStore, SavedLocalProfile } from "../types/localProfile";
 
 export const LOCAL_PROFILE_STORAGE_KEY = "ak680-studio.localProfiles.v1";
+export const LOCAL_PROFILE_SCHEMA_VERSION = 1;
+
+export interface BackupValidationResult {
+  valid: boolean;
+  backup?: LocalProfileBackup;
+  error?: string;
+  warnings: string[];
+}
+
+export interface RestoreResult {
+  store: LocalProfileStore;
+  message: string;
+  warnings: string[];
+}
 
 export function createSavedLocalProfile(importedProfile: ImportedProfile, now = new Date()): SavedLocalProfile {
   const timestamp = now.toISOString();
@@ -29,7 +43,15 @@ export function parseLocalProfileStore(text: string | null): LocalProfileStore {
   }
 
   const parsed = JSON.parse(text) as Partial<LocalProfileStore>;
-  const profiles = Array.isArray(parsed.profiles) ? parsed.profiles.filter(isSavedLocalProfile) : [];
+  if (parsed.version !== LOCAL_PROFILE_SCHEMA_VERSION) {
+    throw new Error("Unsupported local profile storage schema.");
+  }
+
+  if (!Array.isArray(parsed.profiles)) {
+    throw new Error("Local profile storage is missing a profiles list.");
+  }
+
+  const profiles = normalizeProfileIds(parsed.profiles.filter(isSavedLocalProfile));
   const activeProfileId =
     parsed.activeProfileId && profiles.some((profile) => profile.id === parsed.activeProfileId)
       ? parsed.activeProfileId
@@ -45,7 +67,7 @@ export function parseLocalProfileStore(text: string | null): LocalProfileStore {
 export function serializeLocalProfileStore(store: LocalProfileStore) {
   return JSON.stringify(
     {
-      version: 1,
+      version: LOCAL_PROFILE_SCHEMA_VERSION,
       activeProfileId: store.activeProfileId,
       profiles: store.profiles,
     },
@@ -56,8 +78,130 @@ export function serializeLocalProfileStore(store: LocalProfileStore) {
 
 export function emptyLocalProfileStore(): LocalProfileStore {
   return {
-    version: 1,
+    version: LOCAL_PROFILE_SCHEMA_VERSION,
     profiles: [],
+  };
+}
+
+export function createLocalProfileBackup(store: LocalProfileStore, now = new Date()): LocalProfileBackup {
+  const activeProfileId = store.activeProfileId && store.profiles.some((profile) => profile.id === store.activeProfileId)
+    ? store.activeProfileId
+    : undefined;
+
+  return {
+    version: LOCAL_PROFILE_SCHEMA_VERSION,
+    exportedAt: now.toISOString(),
+    activeProfileId,
+    profiles: normalizeProfileIds(store.profiles),
+  };
+}
+
+export function validateLocalProfileBackup(raw: unknown): BackupValidationResult {
+  const warnings: string[] = [];
+
+  if (!isRecord(raw)) {
+    return { valid: false, error: "Backup must be a JSON object.", warnings };
+  }
+
+  if (raw.version !== LOCAL_PROFILE_SCHEMA_VERSION) {
+    return { valid: false, error: "Backup schema version is not supported.", warnings };
+  }
+
+  if (!Array.isArray(raw.profiles)) {
+    return { valid: false, error: "Backup is missing a profiles list.", warnings };
+  }
+
+  const validProfiles = raw.profiles.filter(isSavedLocalProfile);
+  const invalidCount = raw.profiles.length - validProfiles.length;
+  if (invalidCount > 0) {
+    warnings.push(`${invalidCount} malformed profile record(s) were skipped.`);
+  }
+
+  const profiles = normalizeProfileIds(validProfiles);
+  if (profiles.length !== validProfiles.length || hasDuplicateIds(validProfiles)) {
+    warnings.push("Duplicate profile IDs were made unique during validation.");
+  }
+
+  const activeProfileId =
+    typeof raw.activeProfileId === "string" && profiles.some((profile) => profile.id === raw.activeProfileId)
+      ? raw.activeProfileId
+      : undefined;
+
+  if (raw.activeProfileId && !activeProfileId) {
+    warnings.push("Backup active profile selection was reset because it did not match a restored profile.");
+  }
+
+  return {
+    valid: true,
+    backup: {
+      version: LOCAL_PROFILE_SCHEMA_VERSION,
+      exportedAt: typeof raw.exportedAt === "string" ? raw.exportedAt : new Date().toISOString(),
+      activeProfileId,
+      profiles,
+    },
+    warnings,
+  };
+}
+
+export function parseLocalProfileBackup(text: string): BackupValidationResult {
+  try {
+    return validateLocalProfileBackup(JSON.parse(text));
+  } catch {
+    return { valid: false, error: "Backup JSON could not be parsed.", warnings: [] };
+  }
+}
+
+export function restoreLocalProfileBackup(
+  currentStore: LocalProfileStore,
+  backup: LocalProfileBackup,
+  mode: "merge" | "replace",
+): RestoreResult {
+  if (mode === "replace") {
+    const profiles = normalizeProfileIds(backup.profiles);
+    const activeProfileId =
+      backup.activeProfileId && profiles.some((profile) => profile.id === backup.activeProfileId)
+        ? backup.activeProfileId
+        : undefined;
+
+    return {
+      store: {
+        version: LOCAL_PROFILE_SCHEMA_VERSION,
+        profiles,
+        activeProfileId,
+      },
+      message: `Replaced local profile library with ${profiles.length} profile(s).`,
+      warnings: activeProfileId ? [] : ["Active profile selection was reset."],
+    };
+  }
+
+  const existingIds = new Set(currentStore.profiles.map((profile) => profile.id));
+  const importedProfiles = backup.profiles.map((profile) => {
+    if (!existingIds.has(profile.id)) {
+      existingIds.add(profile.id);
+      return profile;
+    }
+
+    const nextId = makeUniqueProfileId(profile.id, existingIds);
+    existingIds.add(nextId);
+    return { ...profile, id: nextId, updatedAt: new Date().toISOString() };
+  });
+  const duplicateCount = importedProfiles.filter((profile, index) => profile.id !== backup.profiles[index].id).length;
+  const profiles = normalizeProfileIds([...currentStore.profiles, ...importedProfiles]);
+  const activeProfileId =
+    currentStore.activeProfileId && profiles.some((profile) => profile.id === currentStore.activeProfileId)
+      ? currentStore.activeProfileId
+      : backup.activeProfileId && profiles.some((profile) => profile.id === backup.activeProfileId)
+        ? backup.activeProfileId
+        : undefined;
+
+  return {
+    store: {
+      version: LOCAL_PROFILE_SCHEMA_VERSION,
+      profiles,
+      activeProfileId,
+    },
+    message: `Merged ${backup.profiles.length} backup profile(s) into the local library.`,
+    warnings: duplicateCount > 0 ? [`${duplicateCount} duplicate profile ID(s) were made unique.`] : [],
   };
 }
 
@@ -81,7 +225,7 @@ export function deleteSavedProfile(store: LocalProfileStore, profileId: string):
   const profiles = store.profiles.filter((profile) => profile.id !== profileId);
 
   return {
-    version: 1,
+    version: LOCAL_PROFILE_SCHEMA_VERSION,
     profiles,
     activeProfileId: store.activeProfileId === profileId ? undefined : store.activeProfileId,
   };
@@ -145,6 +289,44 @@ function createLocalProfileId(now: Date) {
   return `profile-${now.getTime()}-${randomPart}`;
 }
 
+function normalizeProfileIds(profiles: SavedLocalProfile[]) {
+  const usedIds = new Set<string>();
+
+  return profiles.map((profile) => {
+    if (!usedIds.has(profile.id)) {
+      usedIds.add(profile.id);
+      return profile;
+    }
+
+    const nextId = makeUniqueProfileId(profile.id, usedIds);
+    usedIds.add(nextId);
+    return { ...profile, id: nextId };
+  });
+}
+
+function hasDuplicateIds(profiles: SavedLocalProfile[]) {
+  const ids = new Set<string>();
+  return profiles.some((profile) => {
+    if (ids.has(profile.id)) {
+      return true;
+    }
+    ids.add(profile.id);
+    return false;
+  });
+}
+
+function makeUniqueProfileId(baseId: string, usedIds: Set<string>) {
+  let index = 1;
+  let nextId = `${baseId}-restored-${index}`;
+
+  while (usedIds.has(nextId)) {
+    index += 1;
+    nextId = `${baseId}-restored-${index}`;
+  }
+
+  return nextId;
+}
+
 function isSavedLocalProfile(value: unknown): value is SavedLocalProfile {
   return (
     isRecord(value) &&
@@ -187,4 +369,3 @@ function valueOrFallback(value: unknown) {
 function isRecord(value: unknown): value is JsonRecord {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
-

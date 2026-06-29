@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased - Work Package 4
+
+- Added local profile storage schema versioning.
+- Added full saved-profile library backup export as JSON.
+- Added full saved-profile library backup import/restore with backup shape validation.
+- Added merge restore mode with safe duplicate profile ID handling.
+- Added confirmed replace restore mode with safe active profile reset behavior.
+- Added graceful recovery from corrupt or incompatible local profile storage.
+- Improved local import/export success and error messages.
+- Updated Diagnostics with schema version, storage health, and last backup/import status.
+- Added pure helper tests for backup validation, merge/replace restore behavior, duplicate handling, and corrupt/incompatible storage handling.
+
+Known limitations:
+
+- Backup import/export remains local-only and depends on Tauri webview browser storage.
+- Replace restore affects only the saved local profile library after confirmation.
+- No hardware writes, HID writes, keyboard configuration reads/writes, apply/sync/save-to-device behavior, editors, cloud sync, remote upload, database services, or user accounts are included.
+
 ## Unreleased - Work Package 3
 
 - Added a local profile manager backed by browser `localStorage`.

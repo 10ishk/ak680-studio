@@ -39,6 +39,12 @@ The supplied sample export wraps most profile data in a top-level `profile` obje
 - Profile comparison is read-only and high-level; it summarizes selected sections and counts rather than editing profile data.
 - Local persistence can be cleared by the user, browser storage policy, or webview storage reset.
 - Corrupt local storage is handled by falling back to an empty local profile store and surfacing the storage error.
+- WP4 local profile storage uses schema version `1`.
+- WP4 full library backups include schema version, export timestamp, saved profiles, and active profile ID.
+- Backup validation rejects invalid JSON, unsupported schema versions, missing profile arrays, and malformed saved profile records.
+- Merge restore keeps existing saved profiles and rekeys imported duplicate IDs before saving.
+- Replace restore requires confirmation and resets the active profile when the backup active ID is missing or invalid.
+- Duplicate profile IDs are normalized before local storage or restored backup data is accepted.
 - Native HID command framing for safe hardware writes is unknown.
 - Verification behavior after a hardware write is unknown.
 - Backup and restore semantics for device state are unknown.
@@ -51,4 +57,4 @@ The supplied sample export wraps most profile data in a top-level `profile` obje
 - Design a Red Team plan for the smallest possible future hardware write.
 - Require maintainer approval before adding hardware write code.
 
-Work Package 1 performs local JSON inspection only. Work Package 2 adds read-only HID enumeration only. Work Package 3 adds local-only profile storage, export, active selection, rename/delete, and read-only comparison. Hardware writes, cloud sync, remote upload, databases, and user accounts remain out of scope.
+Work Package 1 performs local JSON inspection only. Work Package 2 adds read-only HID enumeration only. Work Package 3 adds local-only profile storage, export, active selection, rename/delete, and read-only comparison. Work Package 4 hardens local-only profile library backup export/import and storage recovery. Hardware writes, cloud sync, remote upload, databases, and user accounts remain out of scope.

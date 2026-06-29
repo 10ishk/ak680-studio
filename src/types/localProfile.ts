@@ -19,11 +19,21 @@ export interface LocalProfileStore {
   profiles: SavedLocalProfile[];
 }
 
+export interface LocalProfileBackup {
+  version: 1;
+  exportedAt: string;
+  activeProfileId?: string;
+  profiles: SavedLocalProfile[];
+}
+
 export interface LocalProfileStorageState {
+  schemaVersion: 1;
   profiles: SavedLocalProfile[];
   activeProfileId?: string;
   storageType: "Browser localStorage";
+  storageHealth: "healthy" | "recovered" | "error";
   lastStorageError?: string;
+  lastBackupMessage?: string;
 }
 
 export interface ComparisonRow {
@@ -32,4 +42,3 @@ export interface ComparisonRow {
   right: string | number;
   status: "same" | "different";
 }
-

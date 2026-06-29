@@ -30,12 +30,16 @@ import {
 } from "./lib/profileValidation";
 import {
   LOCAL_PROFILE_STORAGE_KEY,
+  LOCAL_PROFILE_SCHEMA_VERSION,
   compareSavedProfiles,
+  createLocalProfileBackup,
   createSavedLocalProfile,
   deleteSavedProfile,
   emptyLocalProfileStore,
+  parseLocalProfileBackup,
   parseLocalProfileStore,
   renameSavedProfile,
+  restoreLocalProfileBackup,
   serializeLocalProfileStore,
 } from "./lib/localProfiles";
 import type { HidDetectionResult, HidDetectionState } from "./types/hid";
@@ -70,27 +74,37 @@ const navigation: Array<{ id: Screen; label: string; icon: typeof Home }> = [
 ];
 
 export default function App() {
+  const [initialLocalProfileLoad] = useState(loadInitialLocalProfileStore);
   const [activeScreen, setActiveScreen] = useState<Screen>("dashboard");
   const [importedProfile, setImportedProfile] = useState<ImportedProfile>(sampleImport);
   const [hidDetection, setHidDetection] = useState<HidDetectionState>({ status: "idle" });
-  const [localProfileStore, setLocalProfileStore] = useState<LocalProfileStore>(() => loadInitialLocalProfileStore().store);
-  const [storageError, setStorageError] = useState<string | undefined>(() => loadInitialLocalProfileStore().error);
+  const [localProfileStore, setLocalProfileStore] = useState<LocalProfileStore>(initialLocalProfileLoad.store);
+  const [storageError, setStorageError] = useState<string | undefined>(initialLocalProfileLoad.error);
+  const [backupMessage, setBackupMessage] = useState<string | undefined>(initialLocalProfileLoad.error);
+  const [storageHealth, setStorageHealth] = useState<LocalProfileStorageState["storageHealth"]>(() =>
+    initialLocalProfileLoad.error ? "recovered" : "healthy",
+  );
   const profile = importedProfile.validation.valid ? importedProfile.profile : undefined;
   const localProfileStorage: LocalProfileStorageState = {
+    schemaVersion: LOCAL_PROFILE_SCHEMA_VERSION,
     profiles: localProfileStore.profiles,
     activeProfileId: localProfileStore.activeProfileId,
     storageType: "Browser localStorage",
+    storageHealth,
     lastStorageError: storageError,
+    lastBackupMessage: backupMessage,
   };
 
   useEffect(() => {
     try {
       localStorage.setItem(LOCAL_PROFILE_STORAGE_KEY, serializeLocalProfileStore(localProfileStore));
-      setStorageError(undefined);
+      setStorageError((currentError) => (storageHealth === "recovered" ? currentError : undefined));
+      setStorageHealth((currentHealth) => (currentHealth === "recovered" ? "recovered" : "healthy"));
     } catch (error) {
       setStorageError(error instanceof Error ? error.message : String(error));
+      setStorageHealth("error");
     }
-  }, [localProfileStore]);
+  }, [localProfileStore, storageHealth]);
 
   async function refreshHidDetection() {
     setHidDetection((current) => ({ status: "checking", result: current.result }));
@@ -168,6 +182,42 @@ export default function App() {
     link.download = `${sanitizeFilename(profileToExport.displayName)}.json`;
     link.click();
     URL.revokeObjectURL(url);
+    setBackupMessage(`Exported profile "${profileToExport.displayName}" as JSON.`);
+  }
+
+  function exportProfileLibraryBackup() {
+    const backup = createLocalProfileBackup(localProfileStore);
+    const json = JSON.stringify(backup, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ak680-profile-library-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setBackupMessage(`Exported full local profile library backup with ${backup.profiles.length} profile(s).`);
+  }
+
+  async function restoreProfileLibraryBackup(file: File, mode: "merge" | "replace") {
+    const text = await file.text();
+    const validation = parseLocalProfileBackup(text);
+
+    if (!validation.valid || !validation.backup) {
+      setBackupMessage(validation.error ?? "Backup could not be validated.");
+      return;
+    }
+
+    if (mode === "replace") {
+      const confirmed = window.confirm("Replace all saved local profiles with this backup?");
+      if (!confirmed) {
+        setBackupMessage("Replace restore canceled. Existing local profiles were preserved.");
+        return;
+      }
+    }
+
+    const restore = restoreLocalProfileBackup(localProfileStore, validation.backup, mode);
+    setLocalProfileStore(restore.store);
+    setBackupMessage([restore.message, ...validation.warnings, ...restore.warnings].join(" "));
   }
 
   return (
@@ -224,6 +274,8 @@ export default function App() {
               onRename={renameLocalProfile}
               onDelete={deleteLocalProfile}
               onExport={exportLocalProfile}
+              onExportBackup={exportProfileLibraryBackup}
+              onRestoreBackup={restoreProfileLibraryBackup}
             />
           )}
           {activeScreen === "import" && (
@@ -448,6 +500,8 @@ function Profiles({
   onRename,
   onDelete,
   onExport,
+  onExportBackup,
+  onRestoreBackup,
 }: {
   importedProfile: ImportedProfile;
   localProfileStorage: LocalProfileStorageState;
@@ -456,9 +510,12 @@ function Profiles({
   onRename: (profileId: string) => void;
   onDelete: (profileId: string) => void;
   onExport: (profileId: string) => void;
+  onExportBackup: () => void;
+  onRestoreBackup: (file: File, mode: "merge" | "replace") => Promise<void>;
 }) {
   const [leftCompareId, setLeftCompareId] = useState("");
   const [rightCompareId, setRightCompareId] = useState("");
+  const [restoreMode, setRestoreMode] = useState<"merge" | "replace">("merge");
   const savedProfiles = localProfileStorage.profiles;
   const activeProfile = savedProfiles.find((profile) => profile.id === localProfileStorage.activeProfileId);
   const leftProfile = savedProfiles.find((profile) => profile.id === leftCompareId);
@@ -523,10 +580,66 @@ function Profiles({
           items={[
             { label: "Active profile", value: activeProfile?.displayName ?? "None selected" },
             { label: "Storage type", value: localProfileStorage.storageType },
+            { label: "Schema version", value: localProfileStorage.schemaVersion },
             { label: "Saved profile count", value: savedProfiles.length },
+            { label: "Storage health", value: localProfileStorage.storageHealth },
             { label: "Last storage error", value: localProfileStorage.lastStorageError ?? "None" },
+            { label: "Last backup message", value: localProfileStorage.lastBackupMessage ?? "None" },
           ]}
         />
+      </Section>
+      <Section title="Full Library Backup">
+        <div className="rounded border border-line bg-white p-5">
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+            <div>
+              <h3 className="font-bold text-ink">Export full local library</h3>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Exports every saved local profile, schema version, metadata, and active profile selection as local JSON.
+              </p>
+              <button
+                type="button"
+                onClick={onExportBackup}
+                className="mt-3 inline-flex items-center justify-center rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss"
+              >
+                Export Library Backup
+              </button>
+            </div>
+            <div>
+              <h3 className="font-bold text-ink">Import or restore backup</h3>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Backup shape is validated before restore. Replace mode asks for confirmation.
+              </p>
+              <label className="mt-3 block text-sm font-semibold text-ink">
+                Restore mode
+                <select
+                  className="mt-2 w-full rounded border border-line bg-white px-3 py-2 text-sm"
+                  value={restoreMode}
+                  onChange={(event) => setRestoreMode(event.target.value as "merge" | "replace")}
+                >
+                  <option value="merge">Merge into existing local profiles</option>
+                  <option value="replace">Replace local profiles after confirmation</option>
+                </select>
+              </label>
+              <input
+                type="file"
+                accept="application/json,.json"
+                className="mt-3 block text-sm"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    void onRestoreBackup(file, restoreMode);
+                    event.target.value = "";
+                  }
+                }}
+              />
+            </div>
+          </div>
+          {localProfileStorage.lastBackupMessage && (
+            <div className="mt-4 rounded border border-moss/30 bg-moss/10 p-3 text-sm text-moss">
+              {localProfileStorage.lastBackupMessage}
+            </div>
+          )}
+        </div>
       </Section>
       <Section title="Read-Only Profile Comparison">
         {savedProfiles.length < 2 ? (
@@ -817,7 +930,7 @@ function RapidTrigger({ profile }: { profile?: AjazzProfile }) {
           items={[
             { label: "magneticAxisRT records", value: summarizeArray(profile?.magneticAxisRT) },
             { label: "magneticAxisRTConfig records", value: summarizeArray(profile?.magneticAxisRTConfig) },
-            { label: "Calibration", value: "Not available in Work Package 1" },
+            { label: "Calibration", value: "Not available in Work Package 4" },
           ]}
         />
       </Section>
@@ -839,7 +952,7 @@ function Macros({ profile }: { profile?: AjazzProfile }) {
         items={[
           { label: "Macro records", value: summarizeArray(profile?.macroDataList) },
           { label: "Macro space size", value: profile?.deviceInfo?.macroSpaceSize ?? "Not present" },
-          { label: "Editing", value: "Not available in Work Package 1" },
+          { label: "Editing", value: "Not available in Work Package 4" },
         ]}
       />
       <Section title="Macro Data">
@@ -910,9 +1023,12 @@ function Diagnostics({
         <InfoGrid
           items={[
             { label: "Storage type", value: localProfileStorage.storageType },
+            { label: "Schema version", value: localProfileStorage.schemaVersion },
+            { label: "Storage health", value: localProfileStorage.storageHealth },
             { label: "Saved profile count", value: localProfileStorage.profiles.length },
             { label: "Active local profile", value: activeProfile?.displayName ?? "None selected" },
             { label: "Last storage error", value: localProfileStorage.lastStorageError ?? "None" },
+            { label: "Last backup/import message", value: localProfileStorage.lastBackupMessage ?? "None" },
             { label: "Persistence", value: "Browser localStorage on this machine" },
             { label: "Remote services", value: "Not used" },
           ]}

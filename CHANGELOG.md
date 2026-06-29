@@ -11,7 +11,9 @@
 - Documented that GitHub Actions CI is skipped until a maintainer with `workflow` OAuth scope can add the check-only workflow.
 - Updated CONTRIBUTING.md with safe hardware/protocol contribution guidance.
 - Updated SECURITY.md with hardware safety and responsible disclosure guidance.
-- Changed the project license to Apache-2.0.
+- Changed the project license from MIT to Apache-2.0.
+- Added license transition guidance: earlier versions of this project may have been distributed under MIT. Starting from this WP5 license update, current and future versions are licensed under Apache-2.0.
+- Documented that GPL-3.0 research repositories must not be copied and may be used only for behavioral/protocol research unless the whole project is explicitly relicensed later.
 
 Known limitations:
 

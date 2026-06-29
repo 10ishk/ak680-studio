@@ -150,3 +150,7 @@ Report unsafe hardware-control behavior, accidental write paths, or security iss
 ## License
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
+
+Earlier versions of this project may have been distributed under MIT. Starting from this WP5 license update, current and future versions are licensed under Apache-2.0.
+
+GPL-3.0 research repositories must not be copied into AK680 Studio. GPL-3.0 repositories may be used only for behavioral or protocol research unless the whole project is explicitly relicensed later.

@@ -97,6 +97,8 @@ Do not use:
 
 The existing `SAPNXTDOOR/AJAZZ-HUB` repository is a reference only. It should not be copied as the app architecture because this project is pursuing a native Tauri/Rust direction.
 
+GPL-3.0 research repositories must not be copied into AK680 Studio. They may be used only for behavioral or protocol research unless the whole project is explicitly relicensed later.
+
 ---
 
 ## 5. Known Target Device Details

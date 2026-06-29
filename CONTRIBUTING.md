@@ -74,6 +74,8 @@ Hardware/protocol research is welcome as documentation or test planning when it 
 
 Do not copy proprietary AJAZZ code, assets, bundled firmware, or vendor UI into this repository. Public references may be cited for research context only.
 
+Do not copy GPL-3.0 code from research repositories. GPL-3.0 repositories may be used only for behavioral or protocol research unless AK680 Studio is explicitly relicensed later.
+
 ## License
 
 By contributing, you agree that your contributions are submitted under the Apache License, Version 2.0.

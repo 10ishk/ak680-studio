@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased - Work Package 17
+
+- Added the First Controlled Setting Write Evidence Plan as an evidence-only planning package.
+- Added inert TypeScript models for first-write evidence records, candidate dossiers, validation results, risk scoring, reversibility scoring, hardware-risk classification, export shape, and disabled write-readiness checklist state.
+- Added non-execution candidate statuses: `insufficient-evidence`, `rejected-too-risky`, `candidate-only`, and `ready-for-future-Red-Team-review`.
+- Added validation for required write-evidence fields, suspicious executable-looking fields, GPL/source-cleanliness statements, backup requirements, rollback requirements, read-back verification, physical verification, and conservative status classification.
+- Added Protocol Research and Diagnostics UI sections for WP17 evidence review, local JSON export, disabled write-readiness checklist, and first-write safety status.
+- Added a sanitized WP17 guide and fixture for future evidence collection.
+- Updated README.md, PROJECT_PLAYBOOK.md, and RESEARCH_NOTES.md with WP17 scope, safety limits, scoring behavior, and future-work requirements.
+- Added frontend tests for WP13/WP16 boundary preservation, evidence-only exports, candidate classification, blocked categories, executable-field rejection, disabled checklist behavior, and safety wording.
+
+Known limitations:
+
+- WP17 is evidence-only.
+- WP17 does not implement, approve, enable, or execute any setting write.
+- WP17 does not change WP13 command behavior and does not add any new HID command.
+- Candidate readiness, risk/reversibility scoring, backup evidence, rollback evidence, read-back evidence, and physical verification evidence are planning data only and do not enable execution.
+- No write support, settings-write support, profile apply, keymap write, lighting write, RT write, SOCD write, macro write, firmware flashing, calibration, raw command console, arbitrary command entry, packet editor, command registry execution, retries, polling, scanning, fuzzing, brute force, probing, automatic execution, hidden follow-up command, unsupported inference, or copied GPL-3.0 material is included.
+- Future write execution requires a separate work package and Red Team plan.
+
 ## Unreleased - Work Package 16
 
 - Added a read-only settings foundation pack using exactly the existing WP13 controlled device-info read as the only approved command.

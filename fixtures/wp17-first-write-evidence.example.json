@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "packId": "ak680-wp17-first-write-example",
+  "title": "WP17 first controlled setting-write evidence plan example",
+  "evidenceOnly": true,
+  "writeExecutionApproved": false,
+  "writeSupportImplemented": false,
+  "commandExecutionEnabled": false,
+  "currentExecutableBoundary": "wp13-device-info-read-only",
+  "records": [
+    {
+      "evidenceId": "placeholder-lighting-visual-only-evidence",
+      "title": "Placeholder lighting evidence requiring future capture",
+      "sourceType": "planning-placeholder",
+      "sourceDateTime": "2026-06-30T00:00:00.000Z",
+      "collectorOrReviewer": "AK680 Studio maintainers",
+      "targetDeviceIdentity": "AJAZZ AK680 V2 VID 3141 / PID 32956",
+      "environment": "Sanitized example; no hardware trace included.",
+      "userActionContext": "Future evidence must identify a specific official-app visual setting action.",
+      "reportDirectionOrType": "Unknown until future evidence.",
+      "reportId": "",
+      "requestLength": "",
+      "observedRequestBytes": "",
+      "observedResponseOrAck": "",
+      "timingSequence": "Unknown; must document previous, candidate, follow-up, and acknowledgement traffic.",
+      "mutationStateUncertainty": "Unknown; candidate remains non-executable.",
+      "reversibilityNotes": "Rollback must be demonstrated before any future review.",
+      "backupPossibility": "Unknown; pre-write backup requirements are not satisfied.",
+      "readBackPossibility": "Unknown; no approved read-back command exists for this setting.",
+      "physicalVerificationMethod": "Possible visual verification only; future evidence required.",
+      "hardwareRiskNotes": "Insufficient evidence; no write approval.",
+      "gplSourceCleanlinessStatement": "No GPL-3.0 source code, comments, constants, packet builders, structures, or implementation material copied.",
+      "redactionSanitizationStatus": "Sanitized placeholder, no serials, private paths, or raw private traces.",
+      "reviewerNotes": "Example evidence is incomplete and must not be executed."
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "visual-lighting-first-write-placeholder",
+      "title": "Possible future visual-only lighting setting",
+      "category": "simple-lighting-setting-write",
+      "status": "insufficient-evidence",
+      "evidenceReferences": [
+        "placeholder-lighting-visual-only-evidence"
+      ],
+      "observedRequestBytes": "",
+      "reportId": "",
+      "requestLength": "",
+      "targetInterfaceMetadata": "Must be documented before future review.",
+      "expectedResponseAcknowledgement": "Unknown.",
+      "officialAppUserActionContext": "Future evidence must document exact action and avoid save/apply/sync ambiguity.",
+      "mutationScope": "Unknown",
+      "riskScore": 5,
+      "riskScoreExplanation": "Evidence is incomplete; risk is treated as unacceptable for first write.",
+      "reversibilityScore": 1,
+      "reversibilityScoreExplanation": "Rollback is not demonstrated.",
+      "rollbackRecoveryPlan": "Missing; required before future review.",
+      "preWriteBackupRequirements": "Missing; required before future review.",
+      "readBackVerificationPlan": "Missing; required before future review.",
+      "physicalVerificationPlan": "Visual verification may be possible but is not documented.",
+      "hardwareRiskClassification": "unknown-risk-blocked",
+      "safetyRationale": "No execution in WP17.",
+      "rejectionRationale": "Insufficient evidence.",
+      "unknownsAndUncertainties": "Exact bytes, report ID, length, response, rollback, backup, and verification are unknown.",
+      "gplSourceCleanlinessStatement": "No GPL-3.0 source code, comments, constants, packet builders, structures, or implementation material copied.",
+      "futureImplementationRequirements": "Separate WP18-or-later implementation and Red Team plan.",
+      "futureRedTeamReviewRequirements": "Complete evidence, rollback, backup, verification, and source-cleanliness review.",
+      "reviewerNotes": "Non-executable planning placeholder."
+    }
+  ],
+  "safetyNotes": [
+    "WP17 is evidence-only.",
+    "No setting write is implemented, approved, enabled, or executed.",
+    "Candidate readiness and evidence completeness do not enable execution.",
+    "Backup, rollback, read-back, and physical verification evidence remain planning data only.",
+    "The future write gate remains disabled and requires a separate work package and Red Team plan."
+  ]
+}

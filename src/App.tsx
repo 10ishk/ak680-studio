@@ -108,6 +108,13 @@ import {
   createReadOnlySnapshotExport,
   createSnapshotProfileComparison,
 } from "./lib/readOnlySettingsFoundation";
+import {
+  DISABLED_WRITE_READINESS_CHECKLIST,
+  EXAMPLE_FIRST_WRITE_EVIDENCE_PACK,
+  WP17_SAFETY_NOTES,
+  createFirstWriteEvidenceExport,
+  validateFirstWriteEvidencePack,
+} from "./lib/firstWriteEvidence";
 import type { HidDetectionResult, HidDetectionState } from "./types/hid";
 import type { LocalProfileStorageState, LocalProfileStore, SavedLocalProfile } from "./types/localProfile";
 import type { AjazzProfile, ImportedProfile, KeyboardKey } from "./types/profile";
@@ -514,6 +521,18 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
+  function exportFirstWriteEvidencePlan() {
+    const exportedPlan = createFirstWriteEvidenceExport();
+    const json = JSON.stringify(exportedPlan, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ak680-first-write-evidence-plan-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function runControlledDeviceInfoRead() {
     const selectedInterface = controlledReadState.selectedInterface;
     const request = createControlledReadBackendRequest(selectedInterface);
@@ -672,6 +691,7 @@ export default function App() {
               onExportHardwareSmokeTestTemplate={exportHardwareSmokeTestTemplate}
               onExportReadProtocolEvidencePack={exportReadProtocolEvidencePack}
               onExportReadOnlySnapshot={exportReadOnlySnapshot}
+              onExportFirstWriteEvidencePlan={exportFirstWriteEvidencePlan}
               onRefresh={refreshHidDetection}
               onExportSnapshot={exportProtocolDiagnosticsSnapshot}
             />
@@ -1971,6 +1991,7 @@ function ProtocolResearch({
   onExportHardwareSmokeTestTemplate,
   onExportReadProtocolEvidencePack,
   onExportReadOnlySnapshot,
+  onExportFirstWriteEvidencePlan,
   onRefresh,
   onExportSnapshot,
 }: {
@@ -1986,6 +2007,7 @@ function ProtocolResearch({
   onExportHardwareSmokeTestTemplate: () => void;
   onExportReadProtocolEvidencePack: () => void;
   onExportReadOnlySnapshot: () => void;
+  onExportFirstWriteEvidencePlan: () => void;
   onRefresh: () => Promise<void>;
   onExportSnapshot: () => void;
 }) {
@@ -2001,6 +2023,7 @@ function ProtocolResearch({
     appVersion: APP_VERSION,
   });
   const readOnlyComparison = createSnapshotProfileComparison({ snapshot: readOnlySnapshot, profile });
+  const firstWriteValidation = validateFirstWriteEvidencePack(EXAMPLE_FIRST_WRITE_EVIDENCE_PACK);
 
   return (
     <>
@@ -2284,6 +2307,71 @@ function ProtocolResearch({
           </div>
         </div>
       </Section>
+      <Section title="First Write Evidence Plan">
+        <div className="space-y-4">
+          <div className="rounded border border-copper/40 bg-copper/10 p-5">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
+              <div>
+                <p className="font-bold text-ink">Evidence-only first-write planning</p>
+                <p className="mt-1 text-sm leading-6 text-slate-700">
+                  WP17 collects planning evidence for a possible future first controlled setting write. It does not
+                  implement, approve, enable, or execute setting writes. Candidate readiness, backup evidence, rollback
+                  evidence, and read-back evidence are planning data only.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">Evidence and candidate status</p>
+              <InfoGrid
+                items={[
+                  { label: "Evidence records", value: EXAMPLE_FIRST_WRITE_EVIDENCE_PACK.records.length },
+                  { label: "Candidate records", value: EXAMPLE_FIRST_WRITE_EVIDENCE_PACK.candidates.length },
+                  { label: "Validation", value: firstWriteValidation.valid ? "Valid" : "Planning evidence incomplete" },
+                  { label: "Write execution approved", value: "No" },
+                  { label: "Write support implemented", value: "No" },
+                  { label: "Candidate execution enabled", value: "No" },
+                  { label: "Existing executable command", value: "wp13-device-info-read only" },
+                  { label: "Validation touches HID", value: "No" },
+                ]}
+              />
+              <button
+                type="button"
+                onClick={onExportFirstWriteEvidencePlan}
+                className="mt-4 rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss"
+              >
+                Export First-Write Evidence Plan
+              </button>
+            </div>
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">Risk and reversibility planning</p>
+              <InfoGrid
+                items={[
+                  { label: "Risk scoring", value: "1 very low to 5 unacceptable; conservative by default" },
+                  { label: "Reversibility scoring", value: "1 unknown to 5 documented and verifiable" },
+                  { label: "Backup evidence", value: "Required for future review; does not approve execution" },
+                  { label: "Rollback evidence", value: "Required for future review; does not approve execution" },
+                  { label: "Read-back / physical verification", value: "Required for future review; planning only" },
+                  { label: "Future implementation", value: "Requires separate WP and Red Team plan" },
+                ]}
+              />
+            </div>
+          </div>
+          <div className="rounded border border-line bg-white p-5">
+            <p className="font-semibold text-ink">Disabled write-readiness checklist</p>
+            <ul className="mt-3 grid gap-2 md:grid-cols-2">
+              {DISABLED_WRITE_READINESS_CHECKLIST.map((item) => (
+                <li key={item.label} className="rounded border border-line bg-cloud px-3 py-2">
+                  <p className="text-sm font-semibold text-ink">{item.label}: {item.status}</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">{item.detail}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </Section>
       <Section title="Controlled Read Experiment">
         <div className="space-y-4">
           <div className="rounded border border-copper/40 bg-copper/10 p-5">
@@ -2556,6 +2644,7 @@ function Diagnostics({
     controlledReadState,
     appVersion: APP_VERSION,
   });
+  const firstWriteValidation = validateFirstWriteEvidencePack(EXAMPLE_FIRST_WRITE_EVIDENCE_PACK);
   const safetyItems = useMemo(
     () => [
       "No hardware write commands",
@@ -2586,6 +2675,9 @@ function Diagnostics({
       "WP16 approves only the existing WP13 read command",
       "WP16 snapshot/compare/export does not touch HID devices",
       "WP16 future write gate is disabled",
+      "WP17 first-write planning is evidence-only",
+      "WP17 candidate records are non-executable",
+      "WP17 backup/rollback/read-back evidence does not enable execution",
     ],
     [],
   );
@@ -2765,6 +2857,27 @@ function Diagnostics({
             { label: "Future write gate", value: FUTURE_WRITE_GATE.status },
             { label: "GPL/source cleanliness", value: "Preserved" },
             { label: "Safety notes", value: READ_ONLY_FOUNDATION_SAFETY_NOTES.length },
+          ]}
+        />
+      </Section>
+      <Section title="First Write Evidence Plan Status">
+        <InfoGrid
+          items={[
+            { label: "WP17 scope", value: "Evidence-only planning" },
+            { label: "Evidence records", value: EXAMPLE_FIRST_WRITE_EVIDENCE_PACK.records.length },
+            { label: "Candidate records", value: EXAMPLE_FIRST_WRITE_EVIDENCE_PACK.candidates.length },
+            { label: "Validation", value: firstWriteValidation.valid ? "Valid" : "Planning evidence incomplete" },
+            { label: "Write support", value: "Not implemented" },
+            { label: "First-write execution", value: "Not approved" },
+            { label: "Candidate record execution", value: "Non-executable" },
+            { label: "Candidate readiness enables execution", value: "No" },
+            { label: "Future write gate", value: FUTURE_WRITE_GATE.status },
+            { label: "Existing approved command", value: "wp13-device-info-read" },
+            { label: "Writes/apply/sync/save-to-device", value: "Not implemented" },
+            { label: "Retries/polling/scanning/fuzzing/probing/automatic execution", value: "Not implemented" },
+            { label: "Validation/import/export touches HID", value: "No" },
+            { label: "GPL/source cleanliness required", value: "Yes" },
+            { label: "Safety notes", value: WP17_SAFETY_NOTES.length },
           ]}
         />
       </Section>

@@ -183,6 +183,8 @@ For Work Package 15, Codex may add read-protocol evidence and candidate dossier 
 
 For Work Package 16, Codex may add a read-only settings foundation pack. WP16 may define an approved read-only command pack, local read-only snapshot model, snapshot viewer, conservative snapshot/profile compare UI, local snapshot export, and disabled future write gate. WP16 approves exactly the existing WP13 `AA 10 30` controlled device-info read unless WP15 evidence fully qualifies additional commands; the current implementation must not promote insufficient WP15 candidates. WP16 must not add writes, apply/sync/save-to-device behavior, setting writes, full profile apply, macro/keymap/lighting/RT/SOCD writes, firmware flashing, calibration control, arbitrary command entry, raw command consoles, packet editing, command registry execution, retries, polling, scanning, fuzzing, brute force, probing, automatic execution, unsupported inference, broad settings-read claims, write-support claims, or copied GPL-3.0 material.
 
+For Work Package 17, Codex may add a First Controlled Setting Write Evidence Plan only. WP17 may define inert local evidence models, candidate write dossier models, validation, conservative risk scoring, reversibility scoring, hardware-risk classification, backup/rollback/read-back/physical verification evidence requirements, suspicious executable-field rejection, disabled write-readiness checklist data, Protocol Research and Diagnostics review sections, local JSON example export, docs, fixtures, and tests. WP17 must not implement, approve, enable, or execute any write command. WP17 must not change the existing WP13/WP16 `wp13-device-info-read` command behavior or gates, add any HID command, add writes, apply/sync/save-to-device behavior, setting writes, keymap/lighting/RT/SOCD/macro/profile writes, firmware flashing, calibration, raw command consoles, arbitrary command entry, packet editing, command registry execution, retries, polling, scanning, fuzzing, brute force, probing, automatic execution, hidden follow-up commands, unsupported inference, write-support claims, or copied GPL-3.0 material.
+
 Any future hardware-write package must include:
 
 1. Documented command/protocol research
@@ -1082,6 +1084,64 @@ No additional WP15 candidate dossier is strong enough to become executable in WP
 
 ---
 
+## 7o. Work Package 17 Scope
+
+### Goal
+
+Add a First Controlled Setting Write Evidence Plan without implementing, approving, enabling, or executing write behavior.
+
+### In Scope
+
+- Preserve Work Package 1 through Work Package 16 behavior
+- Local first-write evidence record model
+- Candidate first-write dossier model
+- Candidate statuses limited to `insufficient-evidence`, `rejected-too-risky`, `candidate-only`, and `ready-for-future-Red-Team-review`
+- Conservative risk scoring from `1` very low to `5` unacceptable
+- Conservative reversibility scoring from `1` unknown to `5` documented and verifiable
+- Hardware-risk classification
+- Backup, rollback, read-back, and physical verification evidence requirements
+- Suspicious executable-field rejection
+- Disabled write-readiness checklist
+- Protocol Research and Diagnostics review sections
+- Local JSON fixture/export shape
+- README.md, PROJECT_PLAYBOOK.md, RESEARCH_NOTES.md, CHANGELOG.md, guide, fixture, and tests
+
+### Out of Scope
+
+- Any new HID command
+- Any write command implementation, approval, enablement, or execution
+- Changes to the WP13/WP16 `wp13-device-info-read` request bytes, report ID, request length, VID/PID gate, usagePage/usage gate, selected path/interface gate, manual confirmation, one-shot behavior, timeout, no-retry behavior, no-polling behavior, or no-automatic-execution behavior
+- Writes
+- Apply, sync, or save-to-device behavior
+- Setting writes
+- Profile apply
+- Macro, keymap, lighting, rapid trigger/actuation, or SOCD/game-mode writes
+- Firmware flashing, DFU, bootloader operations, factory reset, or calibration
+- Arbitrary command entry
+- Raw command consoles
+- Packet editing
+- Command registry execution
+- Retries
+- Polling
+- Scanning
+- Fuzzing
+- Brute force or probing
+- Automatic execution on app launch, screen open, evidence import, dossier validation, device connect, metadata refresh, snapshot viewer open, compare UI open, editor open, backup/export, or import
+- Hidden follow-up commands
+- Unsupported firmware/settings/calibration/layout/memory/profile/write-capability inference
+- Write-support claims
+- Copied GPL-3.0 source code, comments, constants, packet builders, structures, or implementation material
+
+### Design Rules
+
+- Evidence validation must never access HID devices.
+- Evidence import/export must stay local-only and inert.
+- Candidate status, score, completeness, backup evidence, rollback evidence, read-back evidence, and physical verification evidence must never become execution approval.
+- The future write gate must remain disabled and require a separate work package and Red Team plan.
+- The WP13 `AA 10 30` controlled read behavior must remain unchanged.
+
+---
+
 ## 8. Required Screens
 
 The current app must include these screens:
@@ -1103,6 +1163,7 @@ The current app must include these screens:
 15. Hardware Smoke Test checklist section under Protocol Research
 16. Read Protocol Evidence Pack section under Protocol Research
 17. Read-Only Settings Foundation section under Protocol Research
+18. First Write Evidence Plan section under Protocol Research
 
 All screens must remain free of keyboard hardware writes. The only command-capable exception is the WP13-approved `AA 10 30` controlled device-info read/query.
 

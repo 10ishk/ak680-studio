@@ -9,11 +9,15 @@
 - Added a sanitized example evidence fixture and WP15 read protocol evidence guide.
 - Updated README.md, PROJECT_PLAYBOOK.md, and RESEARCH_NOTES.md with WP15 scope, current WP13 command boundary, GPL/source-cleanliness requirements, and future-work limits.
 - Added frontend tests for validation, classification, export shape, malformed evidence, suspicious executable-looking fields, GPL/source-cleanliness wording, and unchanged WP13 constants.
+- Passed Red Team QA for Work Package 15 with no blockers.
 
 Known limitations:
 
+- WP15 is evidence-only.
 - WP15 does not implement settings reads, write support, new HID commands, command approval, or additional protocol execution.
-- Candidate readiness is only for possible future Red Team review and does not enable execution.
+- WP15 did not add, approve, enable, or imply any new HID command.
+- Candidate readiness, including `ready-for-future-Red-Team-review`, is only for possible future Red Team review and does not enable execution.
+- Future command execution requires a separate work package and Red Team plan.
 - Validation, classification, and local export are inert data operations and do not touch HID devices.
 - No writes, apply/sync/save-to-device behavior, retries, polling, scanning, fuzzing, probing, raw command console, arbitrary payload input, packet editing, command registry execution, firmware flashing, calibration, unsupported inference, or copied GPL-3.0 material are included.
 

@@ -10,15 +10,20 @@
 - Added a sanitized WP17 guide and fixture for future evidence collection.
 - Updated README.md, PROJECT_PLAYBOOK.md, and RESEARCH_NOTES.md with WP17 scope, safety limits, scoring behavior, and future-work requirements.
 - Added frontend tests for WP13/WP16 boundary preservation, evidence-only exports, candidate classification, blocked categories, executable-field rejection, disabled checklist behavior, and safety wording.
+- Passed Red Team QA for Work Package 17 with no blockers.
 
 Known limitations:
 
 - WP17 is evidence-only.
 - WP17 does not implement, approve, enable, or execute any setting write.
+- WP17 did not add apply, sync, save-to-device, keymap write, lighting write, RT write, SOCD write, macro write, profile write, firmware flashing, calibration, or other write execution.
 - WP17 does not change WP13 command behavior and does not add any new HID command.
-- Candidate readiness, risk/reversibility scoring, backup evidence, rollback evidence, read-back evidence, and physical verification evidence are planning data only and do not enable execution.
-- No write support, settings-write support, profile apply, keymap write, lighting write, RT write, SOCD write, macro write, firmware flashing, calibration, raw command console, arbitrary command entry, packet editor, command registry execution, retries, polling, scanning, fuzzing, brute force, probing, automatic execution, hidden follow-up command, unsupported inference, or copied GPL-3.0 material is included.
-- Future write execution requires a separate work package and Red Team plan.
+- WP17 did not weaken the WP13/WP16 read-only command boundary.
+- Candidate records are non-executable.
+- Candidate readiness and evidence completeness do not enable execution.
+- Backup, rollback, read-back, and physical verification evidence remain planning data only.
+- The future write gate remains disabled and requires a separate work package and Red Team plan.
+- No write support, first-write support approval, settings-write support, raw command console, arbitrary command entry, packet editor, command registry execution, retries, polling, scanning, fuzzing, brute force, probing, automatic execution, hidden follow-up command, unsupported inference, or copied GPL-3.0 material is included.
 
 ## Unreleased - Work Package 16
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased - Work Package 19
+
+- Added official AJAZZ AK680 V2 profile model helpers for local-only imported profile inspection.
+- Added summaries for `deviceId`, `profileName`, `deviceInfo`, `keyList`, `gameModeInfo`, `ledEffect`, `customLedData`, `macroDataList`, `magneticAxisRT`, `magneticAxisRTConfig`, and `magneticAxisDKS`.
+- Added SOCD detection from `keyList` entries where `userKey.page === "SOCD"`.
+- Added active RT/actuation detection from non-default `magneticAxisRT` and `magneticAxisRTConfig` records, with mapping to `keyList.value` where possible.
+- Added lighting, custom LED, game-mode, official-section warning, and local-only safety summaries in the app UI.
+- Added a compact sanitized official-profile fixture and frontend tests for parser/validator behavior, SOCD detection, RT mapping, lighting parsing, game-mode parsing, key layout import, and warning behavior.
+- Updated README.md and CHANGELOG.md with WP19 local profile-model scope.
+
+Known limitations:
+
+- WP19 is local profile-model integration only.
+- WP19 does not add hardware writes, new HID commands, apply/sync/save-to-device behavior, lighting writes, actuation/RT writes, SOCD writes, keymap writes, macro writes, profile apply, raw command console, arbitrary payload entry, packet editor, or command registry execution.
+- WP19 does not weaken the WP13/WP16 read-only command boundary.
+- WebHID logs remain scratch/reference material only and are not committed.
+
 ## Unreleased - Work Package 18
 
 - Added First Controlled Setting Write Candidate Selection as a candidate-selection-only package.

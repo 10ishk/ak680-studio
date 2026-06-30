@@ -1,0 +1,74 @@
+{
+  "deviceId": "3141:32956:AJAZZ AK680 V2",
+  "profile": {
+    "protocol": "local-official-profile-fixture",
+    "profileName": "Valorant (sanitized)",
+    "deviceInfo": {
+      "romSize": 0,
+      "macroSpaceSize": 512,
+      "vid": 3141,
+      "pid": 32956,
+      "version": 1.11,
+      "workMode": 10,
+      "batteryLevel": 16,
+      "chargeStatus": 0,
+      "currentProfile": 0
+    },
+    "keyList": [
+      [
+        { "className": "", "value": 34, "name": "W", "keyCode": 26, "key": "KeyW" },
+        {
+          "className": "",
+          "value": 49,
+          "name": "A",
+          "keyCode": 4,
+          "key": "KeyA",
+          "userKey": { "name": "SOCD", "text": "senior_btn2", "page": "SOCD", "param1": 3, "param2": 4, "param3": 7 }
+        },
+        { "className": "", "value": 50, "name": "S", "keyCode": 22, "key": "KeyS" },
+        {
+          "className": "",
+          "value": 51,
+          "name": "D",
+          "keyCode": 7,
+          "key": "KeyD",
+          "userKey": { "name": "SOCD", "text": "senior_btn2", "page": "SOCD", "param1": 3, "param2": 4, "param3": 7 }
+        },
+        { "className": "flex-1", "value": 83, "name": "Spacebar", "keyCode": 44, "key": "Space" }
+      ]
+    ],
+    "gameModeInfo": {
+      "gameMode": 0,
+      "fnSwitch": 0,
+      "sleepTime": 3,
+      "keyDelay": 0,
+      "reportRate": 6,
+      "systemMode": 0,
+      "stabilityMode": 1,
+      "autoCalibration": 1
+    },
+    "ledEffect": {
+      "mode": 15,
+      "red": 255,
+      "green": 255,
+      "blue": 255,
+      "secondaryRed": 0,
+      "secondaryGreen": 0,
+      "secondaryBlue": 0,
+      "colorMode": 1,
+      "brightness": 5,
+      "speed": 3,
+      "direction": 0
+    },
+    "customLedData": [
+      { "ledId": 0, "red": 0, "green": 0, "blue": 0 },
+      { "ledId": 1, "red": 255, "green": 0, "blue": 0 }
+    ],
+    "macroDataList": [],
+    "magneticAxisRT": [
+      { "axisType": 0, "isWholeFast": false, "isRampageMode": false, "triggerKeyStroke": 0, "pressRT": 0, "releaseRT": 0 }
+    ],
+    "magneticAxisRTConfig": [],
+    "magneticAxisDKS": []
+  }
+}

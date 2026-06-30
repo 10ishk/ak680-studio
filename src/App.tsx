@@ -26,7 +26,6 @@ import {
   TARGET_DEVICE_ID,
   TARGET_PID,
   TARGET_VID,
-  countSocdKeys,
   countUserKeys,
   getDeviceIdentity,
   parseImportedProfile,
@@ -120,6 +119,12 @@ import {
   createFirstWriteCandidateSelectionExport,
   reviewFirstWriteCandidateSelection,
 } from "./lib/firstWriteCandidateSelection";
+import {
+  getActiveRapidTriggerKeys,
+  getGameModeSummary,
+  getLightingSummary,
+  inspectOfficialProfile,
+} from "./lib/officialProfile";
 import type { HidDetectionResult, HidDetectionState } from "./types/hid";
 import type { LocalProfileStorageState, LocalProfileStore, SavedLocalProfile } from "./types/localProfile";
 import type { AjazzProfile, ImportedProfile, KeyboardKey } from "./types/profile";
@@ -783,6 +788,7 @@ function Dashboard({
   localProfileStorage: LocalProfileStorageState;
 }) {
   const identity = profile ? getDeviceIdentity(profile) : undefined;
+  const officialProfile = inspectOfficialProfile(profile);
   const activeProfile = localProfileStorage.profiles.find((saved) => saved.id === localProfileStorage.activeProfileId);
   return (
     <>
@@ -798,7 +804,9 @@ function Dashboard({
             { label: "Device ID", value: identity?.deviceId ?? "Waiting for valid profile" },
             { label: "Source", value: importedProfile.sourceName },
             { label: "User key overrides", value: countUserKeys(profile) },
-            { label: "SOCD keys", value: countSocdKeys(profile) },
+            { label: "SOCD keys", value: officialProfile.summary.socdCount },
+            { label: "Active RT keys", value: officialProfile.summary.activeRtCount },
+            { label: "Custom LED slots", value: officialProfile.summary.customLedCount },
             { label: "Saved local profiles", value: localProfileStorage.profiles.length },
             { label: "Active local profile", value: activeProfile?.displayName ?? "None selected" },
           ]}
@@ -1870,6 +1878,8 @@ function ProfileInspector({
   importedProfile: ImportedProfile;
 }) {
   const identity = profile ? getDeviceIdentity(profile) : undefined;
+  const officialProfile = inspectOfficialProfile(profile);
+  const gameMode = getGameModeSummary(profile);
   return (
     <>
       <PageHeader title="Profile Inspector" eyebrow="Imported profile details" />
@@ -1885,13 +1895,71 @@ function ProfileInspector({
                 { label: "PID", value: identity?.pid },
                 { label: "Firmware/profile version", value: profile.deviceInfo?.version },
                 { label: "Macro space size", value: profile.deviceInfo?.macroSpaceSize },
+                { label: "Key rows / keys", value: `${officialProfile.summary.keyRows} / ${officialProfile.summary.keyCount}` },
+                { label: "SOCD assignments", value: officialProfile.summary.socdCount },
+                { label: "Active RT keys", value: officialProfile.summary.activeRtCount },
+                { label: "Custom LED slots", value: officialProfile.summary.customLedCount },
+                { label: "Local-only status", value: "Imported profile JSON only" },
               ]}
             />
+          </Section>
+          <Section title="Official Profile Sections">
+            <InfoGrid
+              items={[
+                { label: "gameModeInfo", value: profile.gameModeInfo ? "Present" : "Missing" },
+                { label: "ledEffect", value: profile.ledEffect ? "Present" : "Missing" },
+                { label: "customLedData", value: Array.isArray(profile.customLedData) ? `${profile.customLedData.length} records` : "Missing" },
+                { label: "macroDataList", value: Array.isArray(profile.macroDataList) ? `${profile.macroDataList.length} records` : "Missing" },
+                { label: "magneticAxisRT", value: Array.isArray(profile.magneticAxisRT) ? `${profile.magneticAxisRT.length} records` : "Missing" },
+                {
+                  label: "magneticAxisRTConfig",
+                  value: Array.isArray(profile.magneticAxisRTConfig) ? `${profile.magneticAxisRTConfig.length} records` : profile.magneticAxisRTConfig ? "Present" : "Missing",
+                },
+                { label: "magneticAxisDKS", value: Array.isArray(profile.magneticAxisDKS) ? `${profile.magneticAxisDKS.length} records` : profile.magneticAxisDKS ? "Present" : "Missing" },
+              ]}
+            />
+          </Section>
+          <Section title="Profile Model Warnings">
+            {officialProfile.warnings.length === 0 ? (
+              <p className="rounded border border-line bg-white p-4 text-sm text-slate-700">
+                Official AK680 V2 profile sections are present. This is local profile data, not live device state.
+              </p>
+            ) : (
+              <ul className="grid gap-2">
+                {officialProfile.warnings.map((warning) => (
+                  <li key={warning} className="rounded border border-line bg-white px-3 py-2 text-sm text-slate-700">
+                    {warning}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+          <Section title="SOCD Assignments">
+            {officialProfile.socdAssignments.length === 0 ? (
+              <EmptyState message="No SOCD assignments were found in keyList userKey.page data." />
+            ) : (
+              <InfoGrid
+                items={officialProfile.socdAssignments.map((entry) => ({
+                  label: `${entry.name} (${entry.key})`,
+                  value: `value ${entry.value}; page ${entry.userKey.page}; params ${entry.userKey.param1 ?? "n/a"} / ${entry.userKey.param2 ?? "n/a"} / ${entry.userKey.param3 ?? "n/a"}`,
+                }))}
+              />
+            )}
           </Section>
           <Section title="Device Info">
             <JsonPreview data={profile.deviceInfo} />
           </Section>
           <Section title="Game Mode Info">
+            <InfoGrid
+              items={[
+                { label: "Game mode", value: gameMode.gameMode },
+                { label: "Report rate", value: gameMode.reportRate },
+                { label: "Key delay", value: gameMode.keyDelay },
+                { label: "Sleep time", value: gameMode.sleepTime },
+                { label: "Stability mode", value: gameMode.stabilityMode },
+                { label: "Auto calibration", value: gameMode.autoCalibration },
+              ]}
+            />
             <JsonPreview data={profile.gameModeInfo} />
           </Section>
         </>
@@ -1934,7 +2002,7 @@ function KeyCap({ keyboardKey }: { keyboardKey: KeyboardKey }) {
       title={`value: ${keyboardKey.value ?? "n/a"}; className: ${keyboardKey.className ?? "none"}`}
     >
       <span className="font-semibold">{keyboardKey.name ?? "Key"}</span>
-      {keyboardKey.userKey?.name === "SOCD" && (
+      {keyboardKey.userKey?.page === "SOCD" && (
         <span className="w-fit rounded bg-ink px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">SOCD</span>
       )}
     </div>
@@ -1942,9 +2010,26 @@ function KeyCap({ keyboardKey }: { keyboardKey: KeyboardKey }) {
 }
 
 function Lighting({ profile }: { profile?: AjazzProfile }) {
+  const lighting = getLightingSummary(profile);
   return (
     <>
       <PageHeader title="Lighting" eyebrow="LED data summary" />
+      <Section title="Official Lighting Summary">
+        <InfoGrid
+          items={[
+            { label: "Mode", value: lighting.mode },
+            { label: "Primary color", value: lighting.color },
+            { label: "Secondary color", value: lighting.secondaryColor },
+            { label: "Brightness", value: lighting.brightness },
+            { label: "Speed", value: lighting.speed },
+            { label: "Direction", value: lighting.direction },
+            { label: "Color mode", value: lighting.colorMode },
+            { label: "Custom LED slots", value: lighting.customLedCount },
+            { label: "Custom LED active RGB slots", value: lighting.activeCustomLedCount },
+            { label: "Hardware writes", value: "Not implemented" },
+          ]}
+        />
+      </Section>
       <Section title="LED Effect">
         <JsonPreview data={profile?.ledEffect} />
       </Section>
@@ -1956,6 +2041,7 @@ function Lighting({ profile }: { profile?: AjazzProfile }) {
 }
 
 function RapidTrigger({ profile }: { profile?: AjazzProfile }) {
+  const activeRtKeys = getActiveRapidTriggerKeys(profile);
   return (
     <>
       <PageHeader title="Rapid Trigger" eyebrow="Magnetic-axis summary" />
@@ -1964,15 +2050,57 @@ function RapidTrigger({ profile }: { profile?: AjazzProfile }) {
           items={[
             { label: "magneticAxisRT records", value: summarizeArray(profile?.magneticAxisRT) },
             { label: "magneticAxisRTConfig records", value: summarizeArray(profile?.magneticAxisRTConfig) },
+            { label: "magneticAxisDKS records", value: summarizeArray(profile?.magneticAxisDKS) },
+            { label: "Active RT keys", value: activeRtKeys.length },
             { label: "Calibration", value: "Calibration is not available in this public alpha" },
+            { label: "Hardware writes", value: "Not implemented" },
           ]}
         />
+      </Section>
+      <Section title="Active RT Keys">
+        {activeRtKeys.length === 0 ? (
+          <EmptyState message="No active RT/actuation entries were detected in the imported profile." />
+        ) : (
+          <div className="overflow-x-auto rounded border border-line bg-white">
+            <table className="min-w-full border-collapse text-left text-sm">
+              <thead className="bg-cloud text-xs uppercase tracking-wide text-moss">
+                <tr>
+                  <th className="border-b border-line px-3 py-3">Key</th>
+                  <th className="border-b border-line px-3 py-3">RT index</th>
+                  <th className="border-b border-line px-3 py-3">Mapped by</th>
+                  <th className="border-b border-line px-3 py-3">Axis type</th>
+                  <th className="border-b border-line px-3 py-3">Fast trigger</th>
+                  <th className="border-b border-line px-3 py-3">Trigger</th>
+                  <th className="border-b border-line px-3 py-3">Press / release RT</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeRtKeys.map((entry) => (
+                  <tr key={`${entry.source}-${entry.rtIndex}`} className="align-top">
+                    <td className="border-b border-line px-3 py-3 font-semibold text-ink">
+                      {entry.keyName} ({entry.key})
+                    </td>
+                    <td className="border-b border-line px-3 py-3">{entry.rtIndex}</td>
+                    <td className="border-b border-line px-3 py-3">{entry.mappedBy}</td>
+                    <td className="border-b border-line px-3 py-3">{entry.axisType}</td>
+                    <td className="border-b border-line px-3 py-3">{entry.isWholeFast ? "On" : "Off"}</td>
+                    <td className="border-b border-line px-3 py-3">{entry.triggerKeyStroke}</td>
+                    <td className="border-b border-line px-3 py-3">{entry.pressRT} / {entry.releaseRT}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Section>
       <Section title="magneticAxisRT">
         <JsonPreview data={profile?.magneticAxisRT} />
       </Section>
       <Section title="magneticAxisRTConfig">
         <JsonPreview data={profile?.magneticAxisRTConfig} />
+      </Section>
+      <Section title="magneticAxisDKS">
+        <JsonPreview data={profile?.magneticAxisDKS} />
       </Section>
     </>
   );

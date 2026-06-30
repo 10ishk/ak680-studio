@@ -18,6 +18,7 @@ AK680 Studio is local-only and does not write to keyboard hardware.
 - Read-Only Settings Foundation provides a local snapshot viewer, conservative compare UI, and disabled future write gate.
 - First Write Evidence Plan organizes future first setting-write evidence as non-executable local records only.
 - First Write Candidate Selection reviews WP17 evidence and records Outcome A with no selected write candidate.
+- Official Profile Model parses the AJAZZ AK680 V2 exported profile format locally.
 - Protocol Evidence Guide and Candidate Query Dossier collect evidence only and do not enable command execution.
 - HID detection enumerates safe metadata only.
 - No hardware writes are implemented.
@@ -50,6 +51,7 @@ AK680 Studio is local-only and does not write to keyboard hardware.
 - Read-Only Settings Foundation with the existing WP13 read as the only approved command, local snapshot export, conservative compare categories, and disabled future write gate.
 - First Write Evidence Plan with risk/reversibility scoring, backup/rollback/read-back evidence requirements, disabled write-readiness checklist, and local example export.
 - First Write Candidate Selection with Outcome A, candidate rejection rationale, threshold checks, and local example export.
+- Official Profile Model summaries for device/profile data, key layout, SOCD assignments, active RT keys, lighting, game mode, custom LED slots, macros, and DKS section presence.
 - Protocol Evidence Guide and Candidate Query Dossier template with local example dossier JSON export.
 - Protocol Research screen for safe HID metadata inspection and local diagnostics snapshot export.
 - Diagnostics and About screens with public-alpha safety status.
@@ -213,6 +215,26 @@ Outcome B would require risk score `1` or `2`, reversibility score `4` or `5`, h
 Candidate selection records are non-executable. Candidate selection does not approve writing, implement write support, enable write support, or bypass the disabled future write gate. Backup, rollback, read-back, and physical verification evidence remain planning data only.
 
 See [WP18_FIRST_WRITE_CANDIDATE_SELECTION.md](WP18_FIRST_WRITE_CANDIDATE_SELECTION.md) and [fixtures/wp18-first-write-candidate-selection.example.json](fixtures/wp18-first-write-candidate-selection.example.json).
+
+## Official Profile Model
+
+WP19 integrates the official AJAZZ AK680 V2 exported profile JSON format as local profile data. The model parses and summarizes:
+
+- `deviceId`
+- `profileName`
+- `deviceInfo`
+- `keyList`
+- `gameModeInfo`
+- `ledEffect`
+- `customLedData`
+- `macroDataList`
+- `magneticAxisRT`
+- `magneticAxisRTConfig`
+- `magneticAxisDKS`
+
+SOCD assignments are detected only from imported profile keys where `userKey.page === "SOCD"`. Active RT/actuation keys are detected from non-default `magneticAxisRT` and `magneticAxisRTConfig` entries, then mapped to `keyList.value` where possible. Unmapped indexes stay labeled as unmapped.
+
+The official profile model is local-only. It does not read live keyboard settings, write lighting, write RT/actuation, write SOCD, write keymaps, write macros, apply profiles, sync, save to device, or add any new HID command.
 
 ## Protocol Research
 

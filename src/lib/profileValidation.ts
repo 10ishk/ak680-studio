@@ -12,6 +12,7 @@ const optionalSections = [
   "macroDataList",
   "magneticAxisRT",
   "magneticAxisRTConfig",
+  "magneticAxisDKS",
 ] as const;
 
 export function parseImportedProfile(text: string, sourceName: string): ImportedProfile {
@@ -122,7 +123,7 @@ export function countUserKeys(profile?: AjazzProfile) {
 }
 
 export function countSocdKeys(profile?: AjazzProfile) {
-  return (profile?.keyList ?? []).flat().filter((key) => key.userKey?.name === "SOCD").length;
+  return (profile?.keyList ?? []).flat().filter((key) => key.userKey?.page === "SOCD").length;
 }
 
 export function summarizeArray(value: unknown) {
@@ -140,4 +141,3 @@ function stringValue(value: unknown) {
 
   return String(value);
 }
-

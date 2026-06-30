@@ -19,6 +19,7 @@ export interface AjazzProfile {
   macroDataList?: JsonRecord[];
   magneticAxisRT?: MagneticAxisRT[] | JsonRecord;
   magneticAxisRTConfig?: MagneticAxisRTConfig[] | JsonRecord;
+  magneticAxisDKS?: JsonRecord[] | JsonRecord;
   [key: string]: unknown;
 }
 
@@ -108,4 +109,3 @@ export interface ValidationResult {
   errors: string[];
   warnings: string[];
 }
-

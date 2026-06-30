@@ -10,10 +10,12 @@
 - Updated Diagnostics with controlled-read implementation status, command scope, report ID, request length, no-retry status, and safety boundaries.
 - Updated README.md, PROJECT_PLAYBOOK.md, RESEARCH_NOTES.md, and protocol assumptions with WP13 scope and WP12 evidence basis.
 - Added frontend and Rust tests for exact bytes, report ID, request length, gates, cancellation, response formatting, export shape, and no-execution alternatives.
+- Passed Red Team targeted re-check and was accepted for Work Package 13.
 
 Known limitations:
 
 - WP13 implements only the `AA 10 30` device-info read/query and no other command.
+- Physical AK680 V2 success-path smoke test was not independently verified by Red Team.
 - No firmware/settings/calibration/layout/memory/profile inference is made from response bytes.
 - No setting writes, apply/sync/save-to-device behavior, keymap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, unknown or guessed HID commands, other official-driver connect commands, retries, fuzzing, scanning, background polling, cloud sync, remote upload, database services, release publishing, or user accounts are included.
 

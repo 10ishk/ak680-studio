@@ -9,9 +9,15 @@
 - Added Diagnostics status for approved command count, command IDs, WP13 boundary, manual confirmation, retry count zero, polling/automatic execution disabled, snapshot/compare status, and disabled future write gate.
 - Added WP16 guide and tests for command constants, parser known/unknown separation, invalid responses, snapshot shape/export inertness, conservative compare behavior, and disabled future write gate.
 - Updated README.md, PROJECT_PLAYBOOK.md, and RESEARCH_NOTES.md with WP16 scope, approved command table, snapshot/compare limits, and future write requirements.
+- Passed Red Team QA for Work Package 16 with no blockers.
 
 Known limitations:
 
+- WP16 approved exactly one read-only command: `wp13-device-info-read`.
+- No additional WP15 candidate was promoted into execution.
+- WP13 command behavior remains unchanged.
+- Snapshot/viewer/compare/editor/diff/backup/import/export features are local/read-only and do not trigger hidden HID access.
+- The future write gate remains disabled and requires a separate work package and Red Team plan.
 - WP16 approves no new HID commands beyond the existing WP13 `AA 10 30` controlled read.
 - The available WP15 evidence pack does not qualify additional read commands.
 - Snapshot data is incomplete and must not be treated as full settings-read support, full profile state, backup/restore coverage, firmware state, calibration state, memory state, or write capability.

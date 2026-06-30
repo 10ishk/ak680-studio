@@ -9,13 +9,15 @@
 - Added lighting, custom LED, game-mode, official-section warning, and local-only safety summaries in the app UI.
 - Added a compact sanitized official-profile fixture and frontend tests for parser/validator behavior, SOCD detection, RT mapping, lighting parsing, game-mode parsing, key layout import, and warning behavior.
 - Updated README.md and CHANGELOG.md with WP19 local profile-model scope.
+- Passed Red Team QA for Work Package 19 with no blockers.
 
 Known limitations:
 
 - WP19 is local profile-model integration only.
 - WP19 does not add hardware writes, new HID commands, apply/sync/save-to-device behavior, lighting writes, actuation/RT writes, SOCD writes, keymap writes, macro writes, profile apply, raw command console, arbitrary payload entry, packet editor, or command registry execution.
 - WP19 does not weaken the WP13/WP16 read-only command boundary.
-- WebHID logs remain scratch/reference material only and are not committed.
+- Import, view, validation, and export remain local and do not touch HID devices.
+- WebHID logs, research dumps, private traces, scratch files, serials, tokens, secrets, and local paths remain uncommitted.
 
 ## Unreleased - Work Package 18
 

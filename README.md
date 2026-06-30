@@ -14,6 +14,7 @@ AK680 Studio is local-only and does not write to keyboard hardware.
 - Dry-run write safety plans are previews only and send no packets.
 - Controlled Read Experiment can run exactly one WP12-approved device-info read/query after manual confirmation.
 - Hardware smoke-test checklist is optional, manual, and records observations only.
+- Read Protocol Evidence Pack organizes future read-only settings evidence as non-executable local records only.
 - Protocol Evidence Guide and Candidate Query Dossier collect evidence only and do not enable command execution.
 - HID detection enumerates safe metadata only.
 - No hardware writes are implemented.
@@ -42,6 +43,7 @@ AK680 Studio is local-only and does not write to keyboard hardware.
 - Local dry-run plan export as JSON.
 - Controlled Read Experiment under Protocol Research with manual gating, target path/interface selection, the single approved `AA 10 30` request, response display, and local status export.
 - Hardware Smoke Test checklist and local observation template export for release-safety validation.
+- Read Protocol Evidence Pack export with validation, completeness scoring, and non-executable candidate classifications.
 - Protocol Evidence Guide and Candidate Query Dossier template with local example dossier JSON export.
 - Protocol Research screen for safe HID metadata inspection and local diagnostics snapshot export.
 - Diagnostics and About screens with public-alpha safety status.
@@ -144,6 +146,22 @@ The Candidate Query Dossier template includes candidate name, evidence source ty
 
 Ready for Red Team review does not mean ready to run. Dossier evidence does not enable additional command execution; any future query beyond the WP13-approved `AA 10 30` read still requires a separate work package and Red Team plan. The local example dossier export contains placeholders only, no guessed packet bytes, and no GPL-derived implementation material.
 
+## Read Protocol Evidence Pack
+
+WP15 adds local evidence and dossier models for possible future read-only settings support. This is evidence-only; it does not implement settings reads and does not approve any new HID command.
+
+Evidence packs may organize observations for future areas such as device-info follow-up, lighting state, keymap/profile state, rapid trigger/actuation state, SOCD/game-mode state, or another clearly observed read-only candidate area. Records are local JSON data and include source type, source date/time, target device identity, OS/environment, report direction, report ID, request/response lengths, observed bytes when available, timing context, read/write uncertainty, reproducibility notes, safety notes, GPL/source-cleanliness notes, fixture references, and reviewer notes.
+
+Candidate read dossiers use only these non-execution statuses:
+
+- `insufficient`
+- `candidate-only`
+- `ready-for-future-Red-Team-review`
+
+Completeness scoring and ready-for-future-Red-Team-review status do not enable execution, approve a command, or imply settings-read support. Future execution requires a separate work package and Red Team plan.
+
+See [WP15_READ_PROTOCOL_EVIDENCE_GUIDE.md](WP15_READ_PROTOCOL_EVIDENCE_GUIDE.md) and [fixtures/wp15-read-protocol-evidence.example.json](fixtures/wp15-read-protocol-evidence.example.json).
+
 ## Protocol Research
 
 The Protocol Research screen is a read-only, experimental toolkit for future AK680 V2 protocol work.
@@ -155,6 +173,7 @@ It can:
 - Cautiously mark a likely research interface only when exactly one matching interface is available from read-only metadata.
 - Run the single WP13-approved controlled device-info read/query only after explicit user confirmation and target-interface gates.
 - Show a manual hardware smoke-test checklist and export a local observation template.
+- Review and export local WP15 read-protocol evidence packs as non-executable data.
 - Export a local JSON diagnostics snapshot with timestamp, app version, matching HID metadata, imported profile summary, active local profile summary, protocol assumptions, and safety status.
 
 Protocol assumptions:
@@ -165,7 +184,7 @@ Protocol assumptions:
 - Future writes and any additional commands require a separate work package and Red Team plan.
 - GPL-3.0 repositories may be studied for behavior only; do not copy code.
 
-The Protocol Research screen does not send unknown HID command packets, write keyboard configuration, or change keyboard settings. The only command-capable path is the approved `AA 10 30` device-info read/query.
+The Protocol Research screen does not send unknown HID command packets, write keyboard configuration, or change keyboard settings. The only command-capable path is the approved `AA 10 30` device-info read/query. WP15 evidence validation, classification, import shape checks, and export are local data operations and do not touch HID devices.
 
 ## Screenshots
 

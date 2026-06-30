@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased - Work Package 15
+
+- Added a local read-protocol evidence pack model for future read-only settings research.
+- Added candidate read dossier models with non-executable statuses: `insufficient`, `candidate-only`, and `ready-for-future-Red-Team-review`.
+- Added validation, completeness scoring, local export shape, executable-field rejection, byte evidence parsing, and inert classification logic.
+- Added Protocol Research and Diagnostics UI sections for WP15 evidence-only review.
+- Added a sanitized example evidence fixture and WP15 read protocol evidence guide.
+- Updated README.md, PROJECT_PLAYBOOK.md, and RESEARCH_NOTES.md with WP15 scope, current WP13 command boundary, GPL/source-cleanliness requirements, and future-work limits.
+- Added frontend tests for validation, classification, export shape, malformed evidence, suspicious executable-looking fields, GPL/source-cleanliness wording, and unchanged WP13 constants.
+
+Known limitations:
+
+- WP15 does not implement settings reads, write support, new HID commands, command approval, or additional protocol execution.
+- Candidate readiness is only for possible future Red Team review and does not enable execution.
+- Validation, classification, and local export are inert data operations and do not touch HID devices.
+- No writes, apply/sync/save-to-device behavior, retries, polling, scanning, fuzzing, probing, raw command console, arbitrary payload input, packet editing, command registry execution, firmware flashing, calibration, unsupported inference, or copied GPL-3.0 material are included.
+
 ## Unreleased - Work Package 14
 
 - Added Hardware Smoke Test and release-safety polish without changing WP13 command behavior.

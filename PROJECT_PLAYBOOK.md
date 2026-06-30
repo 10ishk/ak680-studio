@@ -179,6 +179,8 @@ For Work Package 13, Codex may implement exactly one controlled device-info read
 
 For Work Package 14, Codex may add Hardware Smoke Test and release-safety polish only. WP14 may add UI/docs/Diagnostics wording, a manual smoke-test checklist, a local observation template export, and tests that pin the existing WP13 scope. WP14 must not add any new HID command, change the WP13 `AA 10 30` request bytes, report ID `0`, request length `64`, AK680 V2 VID/PID gate, usagePage `65384` / usage `97` gate, selected path/interface gate, timeout behavior, or one-shot manual behavior. WP14 must not add retries, polling, automatic execution, arbitrary command entry, raw command consoles, packet editing, writes, apply/sync/save-to-device behavior, setting writes, firmware flashing, calibration, unsupported response inference, or copied GPL-3.0 material.
 
+For Work Package 15, Codex may add read-protocol evidence and candidate dossier pack support only. WP15 may define local evidence record models, candidate read dossier models, validation, completeness scoring, non-executable classifications, local JSON export examples, UI review sections, Diagnostics wording, docs, fixtures, and tests. WP15 must remain evidence-only and must not add, approve, enable, or imply support for any new HID command, executable lighting/keymap/profile/RT/SOCD/game-mode read, settings-read support, write support, raw command console, arbitrary command entry, packet editing, command registry execution, retries, polling, scanning, fuzzing, probing, automatic execution, writes, apply/sync/save-to-device behavior, setting writes, unsupported inference, or copied GPL-3.0 material. Candidate statuses are limited to `insufficient`, `candidate-only`, and `ready-for-future-Red-Team-review`, and none may enable execution.
+
 Any future hardware-write package must include:
 
 1. Documented command/protocol research
@@ -961,6 +963,64 @@ Add Hardware Smoke Test and release-safety polish without changing the WP13 cont
 
 ---
 
+## 7m. Work Package 15 Scope
+
+### Goal
+
+Add Read Protocol Evidence and Candidate Dossier Pack support for possible future read-only settings research.
+
+### In Scope
+
+- Preserve Work Package 1 through Work Package 14 behavior
+- Local evidence file/data model support
+- Candidate read-command dossier data model support
+- Evidence and dossier validation
+- Evidence completeness scoring and non-executable status classification
+- Local JSON evidence/dossier export examples
+- Disabled candidate-read records as inert data only
+- Protocol Research and Diagnostics review sections
+- README.md, PROJECT_PLAYBOOK.md, RESEARCH_NOTES.md, CHANGELOG.md, guide, fixture, and tests
+
+### Allowed Candidate Statuses
+
+- `insufficient`
+- `candidate-only`
+- `ready-for-future-Red-Team-review`
+
+These statuses are labels only. They do not approve commands, enable execution, or claim settings-read support.
+
+### Out of Scope
+
+- New executable HID commands
+- Approval of any new HID command
+- Executable lighting, keymap, profile, RT/actuation, SOCD, or game-mode reads
+- Settings-read support claims
+- Write support claims
+- Raw command consoles
+- Arbitrary command entry
+- Packet editing
+- Command registry execution
+- Retries
+- Polling
+- Scanning
+- Fuzzing
+- Brute forcing or probing
+- Automatic execution on app launch, screen open, evidence import, dossier validation, device connect, metadata refresh, or export
+- Writes
+- Apply, sync, or save-to-device behavior
+- Setting writes
+- Unsupported firmware/settings/calibration/layout/memory/profile/write-capability inference
+- Copied GPL-3.0 source code, comments, constants, packet builders, structures, or implementation material
+
+### Design Rules
+
+- Evidence validation must never access HID devices.
+- Evidence import/export must stay local-only and inert.
+- Candidate completeness must never become execution approval.
+- The WP13 `AA 10 30` controlled read behavior must remain unchanged.
+
+---
+
 ## 8. Required Screens
 
 The current app must include these screens:
@@ -980,6 +1040,7 @@ The current app must include these screens:
 13. Write Safety / Dry-Run Planner
 14. Controlled Read Experiment section under Protocol Research
 15. Hardware Smoke Test checklist section under Protocol Research
+16. Read Protocol Evidence Pack section under Protocol Research
 
 All screens must remain free of keyboard hardware writes. The only command-capable exception is the WP13-approved `AA 10 30` controlled device-info read/query.
 

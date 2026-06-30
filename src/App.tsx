@@ -91,6 +91,14 @@ import {
   WP14_RELEASE_SAFETY_STATEMENTS,
   createHardwareSmokeTestTemplate,
 } from "./lib/hardwareSmokeTest";
+import {
+  EXAMPLE_READ_PROTOCOL_EVIDENCE_PACK,
+  READ_CANDIDATE_AREAS,
+  READ_CANDIDATE_STATUSES,
+  WP15_SAFETY_NOTES,
+  createReadProtocolEvidencePackExport,
+  validateReadProtocolEvidencePack,
+} from "./lib/readProtocolEvidence";
 import type { HidDetectionResult, HidDetectionState } from "./types/hid";
 import type { LocalProfileStorageState, LocalProfileStore, SavedLocalProfile } from "./types/localProfile";
 import type { AjazzProfile, ImportedProfile, KeyboardKey } from "./types/profile";
@@ -468,6 +476,18 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
+  function exportReadProtocolEvidencePack() {
+    const exportedPack = createReadProtocolEvidencePackExport();
+    const json = JSON.stringify(exportedPack, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ak680-read-protocol-evidence-pack-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function runControlledDeviceInfoRead() {
     const selectedInterface = controlledReadState.selectedInterface;
     const request = createControlledReadBackendRequest(selectedInterface);
@@ -624,6 +644,7 @@ export default function App() {
               onExportControlledReadStatus={exportControlledReadStatus}
               onExportCandidateQueryDossier={exportCandidateQueryDossier}
               onExportHardwareSmokeTestTemplate={exportHardwareSmokeTestTemplate}
+              onExportReadProtocolEvidencePack={exportReadProtocolEvidencePack}
               onRefresh={refreshHidDetection}
               onExportSnapshot={exportProtocolDiagnosticsSnapshot}
             />
@@ -1921,6 +1942,7 @@ function ProtocolResearch({
   onExportControlledReadStatus,
   onExportCandidateQueryDossier,
   onExportHardwareSmokeTestTemplate,
+  onExportReadProtocolEvidencePack,
   onRefresh,
   onExportSnapshot,
 }: {
@@ -1934,6 +1956,7 @@ function ProtocolResearch({
   onExportControlledReadStatus: () => void;
   onExportCandidateQueryDossier: () => void;
   onExportHardwareSmokeTestTemplate: () => void;
+  onExportReadProtocolEvidencePack: () => void;
   onRefresh: () => Promise<void>;
   onExportSnapshot: () => void;
 }) {
@@ -1943,6 +1966,7 @@ function ProtocolResearch({
   const profile = importedProfile.validation.valid ? importedProfile.profile : undefined;
   const activeProfile = localProfileStorage.profiles.find((saved) => saved.id === localProfileStorage.activeProfileId);
   const exampleDossierValidation = validateCandidateQueryDossier(EXAMPLE_CANDIDATE_QUERY_DOSSIER);
+  const readEvidenceValidation = validateReadProtocolEvidencePack(EXAMPLE_READ_PROTOCOL_EVIDENCE_PACK);
 
   return (
     <>
@@ -2065,6 +2089,64 @@ function ProtocolResearch({
               >
                 Export Example Dossier JSON
               </button>
+            </div>
+          </div>
+        </div>
+      </Section>
+      <Section title="Read Protocol Evidence Pack">
+        <div className="space-y-4">
+          <div className="rounded border border-copper/40 bg-copper/10 p-5">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
+              <div>
+                <p className="font-bold text-ink">Evidence-only candidate read records</p>
+                <p className="mt-1 text-sm leading-6 text-slate-700">
+                  WP15 organizes local evidence and candidate dossiers for possible future read-only settings research.
+                  These records are inert data only. They do not approve commands, enable settings reads, add write
+                  support, or create execution paths beyond the already-approved WP13 controlled read.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">Evidence pack status</p>
+              <InfoGrid
+                items={[
+                  { label: "Schema version", value: EXAMPLE_READ_PROTOCOL_EVIDENCE_PACK.schemaVersion },
+                  { label: "Evidence records", value: EXAMPLE_READ_PROTOCOL_EVIDENCE_PACK.records.length },
+                  { label: "Candidate dossiers", value: EXAMPLE_READ_PROTOCOL_EVIDENCE_PACK.dossiers.length },
+                  { label: "Completeness score", value: `${readEvidenceValidation.completenessScore}%` },
+                  { label: "Classification", value: readEvidenceValidation.status },
+                  { label: "Execution enabled", value: readEvidenceValidation.executionEnabled ? "Yes" : "No" },
+                  { label: "Settings-read support", value: "Not implemented" },
+                  { label: "Validation touches HID", value: "No" },
+                  { label: "Safety notes", value: WP15_SAFETY_NOTES.length },
+                ]}
+              />
+              <button
+                type="button"
+                onClick={onExportReadProtocolEvidencePack}
+                className="mt-4 rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss"
+              >
+                Export Evidence Pack JSON
+              </button>
+            </div>
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">Candidate classifications</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Status values are review labels only. Even ready-for-future-Red-Team-review does not enable execution,
+                approve a command, or imply settings-read support.
+              </p>
+              <InfoGrid
+                items={[
+                  { label: "Allowed statuses", value: READ_CANDIDATE_STATUSES.join(", ") },
+                  { label: "Read areas", value: READ_CANDIDATE_AREAS.length },
+                  { label: "Ready means executable", value: "No" },
+                  { label: "Future execution", value: "Requires separate work package and Red Team plan" },
+                  { label: "GPL/source cleanliness", value: "Required for every evidence pack and dossier" },
+                ]}
+              />
             </div>
           </div>
         </div>
@@ -2336,6 +2418,7 @@ function Diagnostics({
   const matchingInterfaces = getMatchingResearchInterfaces(hidDetection.result);
   const activeProfile = localProfileStorage.profiles.find((saved) => saved.id === localProfileStorage.activeProfileId);
   const exampleDossierValidation = validateCandidateQueryDossier(EXAMPLE_CANDIDATE_QUERY_DOSSIER);
+  const readEvidenceValidation = validateReadProtocolEvidencePack(EXAMPLE_READ_PROTOCOL_EVIDENCE_PACK);
   const safetyItems = useMemo(
     () => [
       "No hardware write commands",
@@ -2360,6 +2443,9 @@ function Diagnostics({
       "Controlled read limited to AA 10 30",
       "No controlled read retries",
       "No fuzzing or command scanning",
+      "WP15 evidence packs are non-executable",
+      "WP15 candidate statuses do not enable execution",
+      "WP15 validation/import/export does not touch HID devices",
     ],
     [],
   );
@@ -2422,6 +2508,25 @@ function Diagnostics({
             { label: "Additional dossier-enabled execution", value: "Not implemented" },
             { label: "Keyboard setting writes", value: "Not implemented" },
             { label: "Apply/sync/save-to-device", value: "Not implemented" },
+          ]}
+        />
+      </Section>
+      <Section title="Read Protocol Evidence Pack Status">
+        <InfoGrid
+          items={[
+            { label: "WP15 scope", value: "Evidence-only" },
+            { label: "Evidence records", value: EXAMPLE_READ_PROTOCOL_EVIDENCE_PACK.records.length },
+            { label: "Candidate dossiers", value: EXAMPLE_READ_PROTOCOL_EVIDENCE_PACK.dossiers.length },
+            { label: "Pack validation", value: readEvidenceValidation.valid ? "Valid" : "Needs evidence cleanup" },
+            { label: "Pack classification", value: readEvidenceValidation.status },
+            { label: "Command execution enabled", value: "No" },
+            { label: "New HID commands approved", value: "No" },
+            { label: "Settings-read support", value: "Not implemented" },
+            { label: "Write support", value: "Not implemented" },
+            { label: "Candidate status enables execution", value: "No" },
+            { label: "Validation/import/export touches HID", value: "No" },
+            { label: "Future execution", value: "Requires separate work package and Red Team plan" },
+            { label: "GPL/source cleanliness required", value: "Yes" },
           ]}
         />
       </Section>

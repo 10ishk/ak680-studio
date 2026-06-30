@@ -15,6 +15,7 @@ AK680 Studio is local-only and does not write to keyboard hardware.
 - Controlled Read Experiment can run exactly one WP12-approved device-info read/query after manual confirmation.
 - Hardware smoke-test checklist is optional, manual, and records observations only.
 - Read Protocol Evidence Pack organizes future read-only settings evidence as non-executable local records only.
+- Read-Only Settings Foundation provides a local snapshot viewer, conservative compare UI, and disabled future write gate.
 - Protocol Evidence Guide and Candidate Query Dossier collect evidence only and do not enable command execution.
 - HID detection enumerates safe metadata only.
 - No hardware writes are implemented.
@@ -44,6 +45,7 @@ AK680 Studio is local-only and does not write to keyboard hardware.
 - Controlled Read Experiment under Protocol Research with manual gating, target path/interface selection, the single approved `AA 10 30` request, response display, and local status export.
 - Hardware Smoke Test checklist and local observation template export for release-safety validation.
 - Read Protocol Evidence Pack export with validation, completeness scoring, and non-executable candidate classifications.
+- Read-Only Settings Foundation with the existing WP13 read as the only approved command, local snapshot export, conservative compare categories, and disabled future write gate.
 - Protocol Evidence Guide and Candidate Query Dossier template with local example dossier JSON export.
 - Protocol Research screen for safe HID metadata inspection and local diagnostics snapshot export.
 - Diagnostics and About screens with public-alpha safety status.
@@ -162,6 +164,20 @@ Completeness scoring and ready-for-future-Red-Team-review status do not enable e
 
 See [WP15_READ_PROTOCOL_EVIDENCE_GUIDE.md](WP15_READ_PROTOCOL_EVIDENCE_GUIDE.md) and [fixtures/wp15-read-protocol-evidence.example.json](fixtures/wp15-read-protocol-evidence.example.json).
 
+## Read-Only Settings Foundation
+
+WP16 adds the local foundation for future settings work while keeping hardware interaction read-only. The approved command pack contains exactly one command: the existing WP13 `AA 10 30` controlled device-info read/query. WP15 evidence did not qualify any additional read commands for WP16.
+
+The snapshot viewer and compare UI are local/read-only:
+
+- Snapshot export is local JSON only and does not trigger additional reads.
+- Known parsed fields, unknown fields, raw bytes, parser warnings, and confidence are separated.
+- Snapshot data may be incomplete.
+- Unsupported profile areas are labeled unsupported by the current read-only command pack.
+- Compare results cannot be applied, synced, saved to device, or written back.
+
+The future write gate remains disabled and requires a separate work package and Red Team plan. See [WP16_READ_ONLY_SETTINGS_FOUNDATION.md](WP16_READ_ONLY_SETTINGS_FOUNDATION.md).
+
 ## Protocol Research
 
 The Protocol Research screen is a read-only, experimental toolkit for future AK680 V2 protocol work.
@@ -174,6 +190,7 @@ It can:
 - Run the single WP13-approved controlled device-info read/query only after explicit user confirmation and target-interface gates.
 - Show a manual hardware smoke-test checklist and export a local observation template.
 - Review and export local WP15 read-protocol evidence packs as non-executable data.
+- View/export local WP16 read-only snapshots and conservative snapshot/profile comparisons.
 - Export a local JSON diagnostics snapshot with timestamp, app version, matching HID metadata, imported profile summary, active local profile summary, protocol assumptions, and safety status.
 
 Protocol assumptions:
@@ -184,7 +201,7 @@ Protocol assumptions:
 - Future writes and any additional commands require a separate work package and Red Team plan.
 - GPL-3.0 repositories may be studied for behavior only; do not copy code.
 
-The Protocol Research screen does not send unknown HID command packets, write keyboard configuration, or change keyboard settings. The only command-capable path is the approved `AA 10 30` device-info read/query. WP15 evidence validation, classification, import shape checks, and export are local data operations and do not touch HID devices.
+The Protocol Research screen does not send unknown HID command packets, write keyboard configuration, or change keyboard settings. The only command-capable path is the approved `AA 10 30` device-info read/query. WP15 evidence validation, WP16 snapshot/viewer/compare/export, classification, import shape checks, and export are local data operations and do not touch HID devices.
 
 ## Screenshots
 

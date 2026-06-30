@@ -181,6 +181,8 @@ For Work Package 14, Codex may add Hardware Smoke Test and release-safety polish
 
 For Work Package 15, Codex may add read-protocol evidence and candidate dossier pack support only. WP15 may define local evidence record models, candidate read dossier models, validation, completeness scoring, non-executable classifications, local JSON export examples, UI review sections, Diagnostics wording, docs, fixtures, and tests. WP15 must remain evidence-only and must not add, approve, enable, or imply support for any new HID command, executable lighting/keymap/profile/RT/SOCD/game-mode read, settings-read support, write support, raw command console, arbitrary command entry, packet editing, command registry execution, retries, polling, scanning, fuzzing, probing, automatic execution, writes, apply/sync/save-to-device behavior, setting writes, unsupported inference, or copied GPL-3.0 material. Candidate statuses are limited to `insufficient`, `candidate-only`, and `ready-for-future-Red-Team-review`, and none may enable execution.
 
+For Work Package 16, Codex may add a read-only settings foundation pack. WP16 may define an approved read-only command pack, local read-only snapshot model, snapshot viewer, conservative snapshot/profile compare UI, local snapshot export, and disabled future write gate. WP16 approves exactly the existing WP13 `AA 10 30` controlled device-info read unless WP15 evidence fully qualifies additional commands; the current implementation must not promote insufficient WP15 candidates. WP16 must not add writes, apply/sync/save-to-device behavior, setting writes, full profile apply, macro/keymap/lighting/RT/SOCD writes, firmware flashing, calibration control, arbitrary command entry, raw command consoles, packet editing, command registry execution, retries, polling, scanning, fuzzing, brute force, probing, automatic execution, unsupported inference, broad settings-read claims, write-support claims, or copied GPL-3.0 material.
+
 Any future hardware-write package must include:
 
 1. Documented command/protocol research
@@ -1021,6 +1023,65 @@ These statuses are labels only. They do not approve commands, enable execution, 
 
 ---
 
+## 7n. Work Package 16 Scope
+
+### Goal
+
+Add a Read-Only Settings Foundation Pack with an approved command list, local snapshot model, viewer/compare UI, and disabled future write gate.
+
+### Approved Command Decision
+
+WP16 approves exactly one command: the existing WP13 controlled device-info read/query `AA 10 30`, report ID `0`, request length `64`, AK680 V2 VID `3141`, PID `32956`, usagePage `65384`, usage `97`, exact selected path/interface, manual confirmation, one-shot execution, short timeout, no retries, no polling, and no automatic execution.
+
+No additional WP15 candidate dossier is strong enough to become executable in WP16.
+
+### In Scope
+
+- Preserve Work Package 1 through Work Package 15 behavior
+- Hard-coded approved read-only command pack
+- Local read-only snapshot model
+- Snapshot viewer and local JSON snapshot export
+- Conservative snapshot/profile comparison
+- Known/unknown/raw/parser-warning/confidence response separation
+- Disabled future write gate
+- Diagnostics for approved command count, WP13 boundary, manual/no-retry/no-polling/no-auto status, snapshot/compare status, and future write gate status
+- README.md, PROJECT_PLAYBOOK.md, RESEARCH_NOTES.md, CHANGELOG.md, guide, and tests
+
+### Out of Scope
+
+- Any command beyond the WP13 `AA 10 30` controlled read
+- Hardware writes
+- Apply, sync, or save-to-device behavior
+- Setting writes
+- Full profile apply
+- Macro, keymap, RGB/lighting, rapid trigger/actuation, or SOCD/game-mode writes
+- Firmware flashing
+- Calibration write/control
+- Arbitrary command entry
+- Raw command consoles
+- Packet editing
+- Command registry execution
+- Command scanning
+- Fuzzing, brute force, or probing
+- Polling
+- Retries
+- Automatic execution on app launch, screen open, device connect, metadata refresh, snapshot viewer open, compare UI open, editor open, backup/export, or import
+- Execution on keyboard usagePage `1` / usage `6`
+- Execution on consumer-control usagePage `12` / usage `1`
+- Unsupported firmware/settings/calibration/layout/memory/profile/write-capability inference
+- Write-support claims
+- Broad settings-read support claims beyond the exact approved command
+- Copied GPL-3.0 source code, comments, constants, packet builders, structures, or implementation material
+
+### Design Rules
+
+- Snapshot/viewer/compare/export must not trigger hidden HID access.
+- Unknown fields must remain unknown.
+- Unsupported fields must be marked unsupported or not comparable, not writable differences.
+- Future write gate must remain disabled and require a separate work package and Red Team plan.
+
+---
+
 ## 8. Required Screens
 
 The current app must include these screens:
@@ -1041,6 +1102,7 @@ The current app must include these screens:
 14. Controlled Read Experiment section under Protocol Research
 15. Hardware Smoke Test checklist section under Protocol Research
 16. Read Protocol Evidence Pack section under Protocol Research
+17. Read-Only Settings Foundation section under Protocol Research
 
 All screens must remain free of keyboard hardware writes. The only command-capable exception is the WP13-approved `AA 10 30` controlled device-info read/query.
 

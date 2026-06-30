@@ -99,6 +99,15 @@ import {
   createReadProtocolEvidencePackExport,
   validateReadProtocolEvidencePack,
 } from "./lib/readProtocolEvidence";
+import {
+  APPROVED_READ_ONLY_COMMANDS,
+  FUTURE_WRITE_GATE,
+  READ_ONLY_COMMAND_PACK_VERSION,
+  READ_ONLY_FOUNDATION_SAFETY_NOTES,
+  createReadOnlyDeviceSnapshot,
+  createReadOnlySnapshotExport,
+  createSnapshotProfileComparison,
+} from "./lib/readOnlySettingsFoundation";
 import type { HidDetectionResult, HidDetectionState } from "./types/hid";
 import type { LocalProfileStorageState, LocalProfileStore, SavedLocalProfile } from "./types/localProfile";
 import type { AjazzProfile, ImportedProfile, KeyboardKey } from "./types/profile";
@@ -488,6 +497,23 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
+  function exportReadOnlySnapshot() {
+    const snapshot = createReadOnlyDeviceSnapshot({
+      controlledReadState,
+      appVersion: APP_VERSION,
+    });
+    const comparison = createSnapshotProfileComparison({ snapshot, profile });
+    const exportedSnapshot = createReadOnlySnapshotExport({ snapshot, comparison });
+    const json = JSON.stringify(exportedSnapshot, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ak680-read-only-snapshot-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function runControlledDeviceInfoRead() {
     const selectedInterface = controlledReadState.selectedInterface;
     const request = createControlledReadBackendRequest(selectedInterface);
@@ -645,6 +671,7 @@ export default function App() {
               onExportCandidateQueryDossier={exportCandidateQueryDossier}
               onExportHardwareSmokeTestTemplate={exportHardwareSmokeTestTemplate}
               onExportReadProtocolEvidencePack={exportReadProtocolEvidencePack}
+              onExportReadOnlySnapshot={exportReadOnlySnapshot}
               onRefresh={refreshHidDetection}
               onExportSnapshot={exportProtocolDiagnosticsSnapshot}
             />
@@ -1943,6 +1970,7 @@ function ProtocolResearch({
   onExportCandidateQueryDossier,
   onExportHardwareSmokeTestTemplate,
   onExportReadProtocolEvidencePack,
+  onExportReadOnlySnapshot,
   onRefresh,
   onExportSnapshot,
 }: {
@@ -1957,6 +1985,7 @@ function ProtocolResearch({
   onExportCandidateQueryDossier: () => void;
   onExportHardwareSmokeTestTemplate: () => void;
   onExportReadProtocolEvidencePack: () => void;
+  onExportReadOnlySnapshot: () => void;
   onRefresh: () => Promise<void>;
   onExportSnapshot: () => void;
 }) {
@@ -1967,6 +1996,11 @@ function ProtocolResearch({
   const activeProfile = localProfileStorage.profiles.find((saved) => saved.id === localProfileStorage.activeProfileId);
   const exampleDossierValidation = validateCandidateQueryDossier(EXAMPLE_CANDIDATE_QUERY_DOSSIER);
   const readEvidenceValidation = validateReadProtocolEvidencePack(EXAMPLE_READ_PROTOCOL_EVIDENCE_PACK);
+  const readOnlySnapshot = createReadOnlyDeviceSnapshot({
+    controlledReadState,
+    appVersion: APP_VERSION,
+  });
+  const readOnlyComparison = createSnapshotProfileComparison({ snapshot: readOnlySnapshot, profile });
 
   return (
     <>
@@ -2148,6 +2182,105 @@ function ProtocolResearch({
                 ]}
               />
             </div>
+          </div>
+        </div>
+      </Section>
+      <Section title="Read-Only Settings Foundation">
+        <div className="space-y-4">
+          <div className="rounded border border-copper/40 bg-copper/10 p-5">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
+              <div>
+                <p className="font-bold text-ink">Approved read pack, snapshot viewer, and compare foundation</p>
+                <p className="mt-1 text-sm leading-6 text-slate-700">
+                  WP16 approves only the existing WP13 controlled device-info read. Snapshot and compare views are
+                  local/read-only and do not run hidden reads on screen open, export, compare, editor, backup, or import.
+                  Unsupported settings remain unknown or unsupported by the current command pack.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">Approved read-only command pack</p>
+              <InfoGrid
+                items={[
+                  { label: "Pack version", value: READ_ONLY_COMMAND_PACK_VERSION },
+                  { label: "Approved command count", value: APPROVED_READ_ONLY_COMMANDS.length },
+                  { label: "Approved command IDs", value: APPROVED_READ_ONLY_COMMANDS.map((command) => command.id).join(", ") },
+                  { label: "Manual confirmation", value: "Required before each approved read" },
+                  { label: "Retries", value: 0 },
+                  { label: "Polling / automatic reads", value: "Disabled" },
+                  { label: "New WP16 commands", value: "None; WP15 evidence did not qualify additional reads" },
+                  { label: "Write support", value: "Not implemented" },
+                ]}
+              />
+            </div>
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">Snapshot viewer</p>
+              <InfoGrid
+                items={[
+                  { label: "Snapshot schema", value: readOnlySnapshot.schemaVersion },
+                  { label: "Data origin", value: readOnlySnapshot.dataOrigin },
+                  { label: "Hardware read performed", value: readOnlySnapshot.hardwareReadPerformed ? "Yes" : "No" },
+                  { label: "Source command", value: readOnlySnapshot.sourceCommands.join(", ") },
+                  { label: "Known parsed fields", value: readOnlySnapshot.commandResults[0].parsed.knownFields.length },
+                  { label: "Unknown field groups", value: readOnlySnapshot.commandResults[0].parsed.unknownFields.length },
+                  { label: "Parser warnings", value: readOnlySnapshot.commandResults[0].parsed.parserWarnings.length },
+                  { label: "Confidence", value: readOnlySnapshot.commandResults[0].parsed.confidence },
+                ]}
+              />
+              <button
+                type="button"
+                onClick={onExportReadOnlySnapshot}
+                className="mt-4 rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss"
+              >
+                Export Snapshot JSON
+              </button>
+            </div>
+          </div>
+          <div className="rounded border border-line bg-white p-5">
+            <p className="font-semibold text-ink">Snapshot vs profile comparison</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              Comparison is local analysis only. Unsupported fields are not treated as writable differences.
+            </p>
+            <div className="mt-4 overflow-x-auto rounded border border-line">
+              <table className="min-w-full border-collapse text-left text-sm">
+                <thead className="bg-cloud text-xs uppercase tracking-wide text-moss">
+                  <tr>
+                    <th className="border-b border-line px-3 py-3">Field</th>
+                    <th className="border-b border-line px-3 py-3">Category</th>
+                    <th className="border-b border-line px-3 py-3">Device snapshot</th>
+                    <th className="border-b border-line px-3 py-3">Profile JSON</th>
+                    <th className="border-b border-line px-3 py-3">Confidence</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {readOnlyComparison.rows.map((row) => (
+                    <tr key={row.field} className="align-top">
+                      <td className="border-b border-line px-3 py-3 font-semibold text-ink">{row.field}</td>
+                      <td className="border-b border-line px-3 py-3">{row.category}</td>
+                      <td className="border-b border-line px-3 py-3">{row.deviceValue}</td>
+                      <td className="border-b border-line px-3 py-3">{row.profileValue}</td>
+                      <td className="border-b border-line px-3 py-3">{row.confidence}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="rounded border border-line bg-white p-5">
+            <p className="font-semibold text-ink">Future write gate</p>
+            <InfoGrid
+              items={[
+                { label: "Status", value: FUTURE_WRITE_GATE.status },
+                { label: "Enabled", value: FUTURE_WRITE_GATE.enabled ? "Yes" : "No" },
+                { label: "Requires separate WP", value: FUTURE_WRITE_GATE.requiresSeparateWorkPackage ? "Yes" : "No" },
+                { label: "Requires Red Team plan", value: FUTURE_WRITE_GATE.requiresRedTeamPlan ? "Yes" : "No" },
+                { label: "Bypass available", value: FUTURE_WRITE_GATE.bypassAvailable ? "Yes" : "No" },
+                { label: "HID access allowed", value: FUTURE_WRITE_GATE.hidAccessAllowed ? "Yes" : "No" },
+              ]}
+            />
           </div>
         </div>
       </Section>
@@ -2419,6 +2552,10 @@ function Diagnostics({
   const activeProfile = localProfileStorage.profiles.find((saved) => saved.id === localProfileStorage.activeProfileId);
   const exampleDossierValidation = validateCandidateQueryDossier(EXAMPLE_CANDIDATE_QUERY_DOSSIER);
   const readEvidenceValidation = validateReadProtocolEvidencePack(EXAMPLE_READ_PROTOCOL_EVIDENCE_PACK);
+  const readOnlySnapshot = createReadOnlyDeviceSnapshot({
+    controlledReadState,
+    appVersion: APP_VERSION,
+  });
   const safetyItems = useMemo(
     () => [
       "No hardware write commands",
@@ -2446,6 +2583,9 @@ function Diagnostics({
       "WP15 evidence packs are non-executable",
       "WP15 candidate statuses do not enable execution",
       "WP15 validation/import/export does not touch HID devices",
+      "WP16 approves only the existing WP13 read command",
+      "WP16 snapshot/compare/export does not touch HID devices",
+      "WP16 future write gate is disabled",
     ],
     [],
   );
@@ -2601,6 +2741,30 @@ function Diagnostics({
             { label: "Apply/sync/save-to-device", value: "Not implemented" },
             { label: "Other official-driver commands", value: "Not implemented" },
             { label: "Fuzzing/scanning/background polling", value: "Not implemented" },
+          ]}
+        />
+      </Section>
+      <Section title="Read-Only Settings Foundation Status">
+        <InfoGrid
+          items={[
+            { label: "Approved command count", value: APPROVED_READ_ONLY_COMMANDS.length },
+            { label: "Approved command IDs", value: APPROVED_READ_ONLY_COMMANDS.map((command) => command.id).join(", ") },
+            { label: "WP13 boundary", value: "Unchanged" },
+            { label: "Report ID / request length", value: "0 / 64 bytes" },
+            { label: "Required interface", value: "usagePage 65384 / usage 97" },
+            { label: "Read-only status", value: "Hardware reads only; no writes" },
+            { label: "Manual confirmation", value: "Required before approved read" },
+            { label: "Retry count", value: 0 },
+            { label: "Polling", value: "Disabled" },
+            { label: "Automatic execution", value: "Disabled" },
+            { label: "Writes/apply/sync/save-to-device", value: "Disabled / not implemented" },
+            { label: "Raw command console / arbitrary payload / packet editor", value: "Not implemented" },
+            { label: "Snapshot model", value: "Available; local/read-only" },
+            { label: "Snapshot data origin", value: readOnlySnapshot.dataOrigin },
+            { label: "Compare UI", value: "Available; conservative local analysis" },
+            { label: "Future write gate", value: FUTURE_WRITE_GATE.status },
+            { label: "GPL/source cleanliness", value: "Preserved" },
+            { label: "Safety notes", value: READ_ONLY_FOUNDATION_SAFETY_NOTES.length },
           ]}
         />
       </Section>

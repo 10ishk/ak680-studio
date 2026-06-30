@@ -145,7 +145,7 @@ export function createCandidateQueryDossierExport({
     workPackage: "WP11",
     evidenceOnly: true,
     commandExecutionEnabled: false,
-    futureImplementationRequires: "A separate future work package and Red Team plan before any command execution.",
+    futureImplementationRequires: "A separate future work package and Red Team plan before any additional command execution.",
     requiredEvidence: [...PROTOCOL_EVIDENCE_REQUIRED_ITEMS],
     allowedStatuses: [...CANDIDATE_QUERY_STATUSES],
     dossier,

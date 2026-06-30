@@ -9,8 +9,8 @@ export const PROTOCOL_ASSUMPTIONS = [
   "Bluetooth configuration is not supported.",
   "The AK680 V2 protocol is treated as proprietary HID, not QMK/VIA.",
   "Future writes require a separate work package and Red Team plan.",
-  "WP10 device-info read/query execution remains disabled until exact report type, report ID, request bytes, response format, and read-only evidence are documented.",
-  "WP11 Candidate Query Dossiers collect evidence only and do not enable command execution.",
+  "WP13 implements exactly one WP12-approved device-info read/query: AA 10 30, report ID 0, 64 request bytes.",
+  "The controlled read requires explicit confirmation, exact selected path/interface, and usagePage 65384 / usage 97 where metadata is available.",
   "GPL-3.0 protocol repositories may be studied for behavior only; do not copy code.",
 ];
 
@@ -19,11 +19,10 @@ export const PROTOCOL_SAFETY_STATUS = [
   "No keyboard settings are changed.",
   "No keyboard configuration writes are implemented.",
   "No unknown HID command packets are sent.",
-  "Only existing HID enumeration metadata is displayed or exported.",
-  "Controlled Read Experiment is a disabled safety harness only.",
-  "No Rust controlled-read command or Tauri controlled-read invoke is implemented.",
-  "No HID report send or fake response bytes are implemented.",
-  "Protocol evidence dossiers require a future work package and Red Team plan before implementation.",
+  "Only existing HID enumeration metadata and the single approved controlled-read result are displayed or exported.",
+  "Controlled Read Experiment is limited to the approved AA 10 30 request.",
+  "No retries, arbitrary command entry, raw command console, fuzzing, scanning, or background polling are implemented.",
+  "Protocol evidence dossiers require a future work package and Red Team plan before any additional command.",
 ];
 
 export interface ProtocolMetadataSummary {

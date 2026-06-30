@@ -64,9 +64,11 @@ import {
 } from "./lib/localEditor";
 import { createDryRunExport, createDryRunPlan, summarizeOperations } from "./lib/dryRunPlanner";
 import {
+  createCanceledControlledReadResult,
+  createControlledReadBackendRequest,
   createControlledReadExperimentState,
   createControlledReadExport,
-  createDisabledControlledReadResult,
+  createControlledReadResultFromBackend,
   getMatchingControlledReadInterfaces,
 } from "./lib/controlledReadExperiment";
 import {
@@ -89,7 +91,11 @@ import type { LocalProfileStorageState, LocalProfileStore, SavedLocalProfile } f
 import type { AjazzProfile, ImportedProfile, KeyboardKey } from "./types/profile";
 import type { EditorDiffSummary, EditorValidation, LocalEditorSession } from "./lib/localEditor";
 import type { DryRunPlan } from "./lib/dryRunPlanner";
-import type { ControlledReadExperimentState, ControlledReadResult } from "./lib/controlledReadExperiment";
+import type {
+  ControlledReadBackendResult,
+  ControlledReadExperimentState,
+  ControlledReadResult,
+} from "./lib/controlledReadExperiment";
 
 type Screen =
   | "dashboard"
@@ -445,12 +451,51 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
-  function recordDisabledControlledReadStatus() {
-    setControlledReadResult(
-      createDisabledControlledReadResult({
-        selectedInterface: controlledReadState.selectedInterface,
-      }),
+  async function runControlledDeviceInfoRead() {
+    const selectedInterface = controlledReadState.selectedInterface;
+    const request = createControlledReadBackendRequest(selectedInterface);
+
+    if (!controlledReadState.canRun || !request) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      [
+        "Run exactly one controlled device-info read/query?",
+        "",
+        "Command scope: AA 10 30 only.",
+        "Report ID: 0.",
+        "Request length: 64 bytes.",
+        "Target: AK680 V2 VID/PID 3141/32956.",
+        "Required interface metadata: usagePage 65384, usage 97.",
+        "",
+        "This does not apply, sync, save to device, or change keyboard settings.",
+      ].join("\n"),
     );
+
+    if (!confirmed) {
+      setControlledReadResult(createCanceledControlledReadResult({ selectedInterface }));
+      return;
+    }
+
+    try {
+      const backendResult = await invoke<ControlledReadBackendResult>("run_controlled_device_info_read", { request });
+      setControlledReadResult(createControlledReadResultFromBackend({ backendResult, selectedInterface }));
+    } catch (error) {
+      setControlledReadResult(
+        createControlledReadResultFromBackend({
+          selectedInterface,
+          backendResult: {
+            status: "error",
+            message: error instanceof Error ? error.message : String(error),
+            reportId: 0,
+            requestLength: 64,
+            responseLength: 0,
+            responseBytes: [],
+          },
+        }),
+      );
+    }
   }
 
   return (
@@ -464,7 +509,7 @@ export default function App() {
               </div>
               <div>
                 <p className="text-lg font-bold">AK680 Studio</p>
-                <p className="text-xs text-slate-600">Public alpha, hardware read-only</p>
+                <p className="text-xs text-slate-600">Public alpha, no hardware writes</p>
               </div>
             </div>
           </div>
@@ -558,7 +603,7 @@ export default function App() {
               controlledReadState={controlledReadState}
               controlledReadSelectedPath={controlledReadSelectedPath}
               onControlledReadSelectedPathChange={setControlledReadSelectedPath}
-              onRecordDisabledControlledReadStatus={recordDisabledControlledReadStatus}
+              onRunControlledDeviceInfoRead={runControlledDeviceInfoRead}
               onExportControlledReadStatus={exportControlledReadStatus}
               onExportCandidateQueryDossier={exportCandidateQueryDossier}
               onRefresh={refreshHidDetection}
@@ -611,11 +656,12 @@ function AlphaSafetyNotice() {
       <div className="flex items-start gap-3">
         <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
         <div>
-          <p className="font-bold text-ink">Public alpha, local-only, and read-only for hardware</p>
+          <p className="font-bold text-ink">Public alpha, local-only, and no hardware writes</p>
           <p className="mt-1 text-sm leading-6 text-slate-700">
             AK680 Studio is an unofficial community project for the AJAZZ AK680 V2. It is not affiliated with,
             endorsed by, or maintained by AJAZZ. This alpha stores data locally, enumerates HID devices with
-            read-only metadata, and does not write settings to keyboard hardware.
+            read-only metadata, allows one approved controlled device-info read/query, and does not write settings to
+            keyboard hardware.
           </p>
         </div>
       </div>
@@ -1853,7 +1899,7 @@ function ProtocolResearch({
   controlledReadState,
   controlledReadSelectedPath,
   onControlledReadSelectedPathChange,
-  onRecordDisabledControlledReadStatus,
+  onRunControlledDeviceInfoRead,
   onExportControlledReadStatus,
   onExportCandidateQueryDossier,
   onRefresh,
@@ -1865,7 +1911,7 @@ function ProtocolResearch({
   controlledReadState: ControlledReadExperimentState;
   controlledReadSelectedPath: string;
   onControlledReadSelectedPathChange: (path: string) => void;
-  onRecordDisabledControlledReadStatus: () => void;
+  onRunControlledDeviceInfoRead: () => void;
   onExportControlledReadStatus: () => void;
   onExportCandidateQueryDossier: () => void;
   onRefresh: () => Promise<void>;
@@ -1886,10 +1932,11 @@ function ProtocolResearch({
           <div className="flex items-start gap-3">
             <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
             <div>
-              <p className="font-bold text-ink">Read-only, experimental, and metadata-only</p>
+              <p className="font-bold text-ink">Read-only research with one controlled query</p>
               <p className="mt-1 text-sm leading-6 text-slate-700">
-                This screen is for protocol research notes and safe HID enumeration metadata only. It does not change
-                settings, write keyboard configuration, send unknown HID command packets, or probe the keyboard.
+                This screen is for protocol research notes, safe HID enumeration metadata, and the single WP13-approved
+                AA 10 30 device-info read/query. It does not change settings, write keyboard configuration, send
+                unknown HID command packets, or probe beyond the approved manual action.
               </p>
             </div>
           </div>
@@ -1957,9 +2004,9 @@ function ProtocolResearch({
               <div>
                 <p className="font-bold text-ink">Evidence-only dossier workflow</p>
                 <p className="mt-1 text-sm leading-6 text-slate-700">
-                  WP11 collects evidence for a future device-info read query. A complete dossier can only become ready
-                  for Red Team review; it does not enable command execution, HID report sends, device-info queries, or
-                  keyboard setting changes in this app.
+                  WP11 collects evidence for future additional queries beyond the WP13-approved AA 10 30 read. A
+                  complete dossier can only become ready for Red Team review; it does not enable additional command
+                  execution, HID report sends, device-info queries, or keyboard setting changes in this app.
                 </p>
               </div>
             </div>
@@ -1988,7 +2035,7 @@ function ProtocolResearch({
                   { label: "Complete", value: exampleDossierValidation.complete ? "Yes" : "No" },
                   { label: "Missing fields", value: exampleDossierValidation.missingFields.length },
                   { label: "Execution enabled", value: "No" },
-                  { label: "Future implementation", value: "Requires new work package and Red Team plan" },
+                  { label: "Future additional commands", value: "Require new work package and Red Team plan" },
                 ]}
               />
               <button
@@ -2008,12 +2055,12 @@ function ProtocolResearch({
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
               <div>
-                <p className="font-bold text-ink">Evidence-gated device-info read harness, disabled pending exact query evidence</p>
+                <p className="font-bold text-ink">Controlled device-info read/query, one approved command only</p>
                 <p className="mt-1 text-sm leading-6 text-slate-700">
-                  WP10 selected Outcome B. Current research notes do not document the exact report type, report ID,
-                  request bytes, response format, or read-only proof for a safe device-info query, so command execution
-                  is not implemented. Use the WP11 Protocol Evidence Guide and Candidate Query Dossier to collect
-                  evidence for a future review; dossier completeness does not enable execution in WP11.
+                  WP13 enables exactly one WP12-approved device-info read/query: AA 10 30, report ID 0, 64 request
+                  bytes. It requires a selected AK680 V2 VID/PID 3141/32956 interface with usagePage 65384 and usage
+                  97 where metadata is available. It runs once per explicit confirmation with no retries, no background
+                  polling, no fuzzing, and no apply/sync/save-to-device behavior.
                 </p>
               </div>
             </div>
@@ -2023,8 +2070,8 @@ function ProtocolResearch({
               <div>
                 <p className="font-semibold text-ink">Target path/interface selection</p>
                 <p className="mt-1 text-sm leading-6 text-slate-600">
-                  A future implemented read/query would require AK680 V2 VID/PID detection and an exact selected
-                  matching HID path/interface. This harness does not guess across multiple interfaces.
+                  The controlled read requires AK680 V2 VID/PID detection and an exact selected matching HID
+                  path/interface. It does not guess across multiple interfaces.
                 </p>
                 <label className="mt-3 block text-sm font-semibold text-ink">
                   Matching AK680 V2 interface
@@ -2046,27 +2093,19 @@ function ProtocolResearch({
                 <p className="font-semibold text-ink">Harness status</p>
                 <InfoGrid
                   items={[
-                    { label: "WP10 outcome", value: "Outcome B: disabled" },
+                    { label: "WP13 outcome", value: "Implemented single approved query" },
                     { label: "Query", value: controlledReadState.queryName },
-                    { label: "Implementation", value: "Disabled / not implemented" },
+                    { label: "Implementation", value: "Implemented / gated" },
+                    { label: "Report ID", value: 0 },
+                    { label: "Request length", value: 64 },
+                    { label: "Retries", value: 0 },
                     { label: "Last status", value: controlledReadState.runStatus },
                     { label: "Selected target", value: controlledReadState.selectedInterface?.path ?? "None" },
                     { label: "Response length", value: controlledReadState.result?.responseLength ?? 0 },
-                    { label: "Missing evidence items", value: controlledReadState.missingEvidence.length },
                     { label: "Keyboard setting writes", value: "Not implemented" },
                   ]}
                 />
               </div>
-            </div>
-            <div className="mt-4 rounded border border-line bg-cloud p-4">
-              <p className="text-sm font-semibold text-ink">Missing evidence before any future device-info query</p>
-              <ul className="mt-2 grid gap-2 md:grid-cols-2">
-                {controlledReadState.missingEvidence.map((item) => (
-                  <li key={item} className="rounded border border-line bg-white px-3 py-2 text-sm text-slate-700">
-                    {item}
-                  </li>
-                ))}
-              </ul>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {controlledReadState.gates.map((gate) => (
@@ -2084,18 +2123,14 @@ function ProtocolResearch({
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
-                disabled
-                className="rounded border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 opacity-60"
+                disabled={!controlledReadState.canRun}
+                onClick={() => {
+                  void onRunControlledDeviceInfoRead();
+                }}
+                className="rounded border border-copper px-4 py-2 text-sm font-semibold text-ink transition hover:bg-copper/10 disabled:cursor-not-allowed disabled:opacity-60"
                 title={controlledReadState.runDisabledReason}
               >
-                Run Device-Info Read: Not Implemented
-              </button>
-              <button
-                type="button"
-                onClick={onRecordDisabledControlledReadStatus}
-                className="rounded border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:bg-cloud"
-              >
-                Record Disabled Status
+                Run One Controlled Device-Info Read
               </button>
               <button
                 type="button"
@@ -2114,9 +2149,19 @@ function ProtocolResearch({
                     { label: "Outcome", value: controlledReadState.result.outcome },
                     { label: "Query", value: controlledReadState.result.queryName },
                     { label: "Timestamp", value: formatTimestamp(controlledReadState.result.timestamp) },
+                    { label: "Report ID", value: controlledReadState.result.reportId },
+                    { label: "Request length", value: controlledReadState.result.requestLength },
                     { label: "Response length", value: controlledReadState.result.responseLength },
                     { label: "Hex bytes", value: controlledReadState.result.responseHex || "None" },
-                    { label: "Missing evidence items", value: controlledReadState.result.missingEvidence.length },
+                    { label: "Prefix", value: controlledReadState.result.minimalParse.prefix },
+                    {
+                      label: "Prefix matches 55 10 30",
+                      value: controlledReadState.result.minimalParse.prefixMatchesExpected ? "Yes" : "No",
+                    },
+                    {
+                      label: "Observed VID/PID-like bytes",
+                      value: controlledReadState.result.minimalParse.observedVidPidLikeBytes ?? "Not available",
+                    },
                     { label: "Message", value: controlledReadState.result.message },
                   ]}
                 />
@@ -2243,10 +2288,11 @@ function Diagnostics({
       "HID enumeration only",
       "Local profile storage only",
       "No unknown HID command packets",
-      "Protocol Research uses metadata only",
+      "Protocol Research uses metadata plus one approved controlled read",
       "Dry-run planner sends no packets",
       "Dry-run execution is blocked",
-      "Controlled read command execution disabled",
+      "Controlled read limited to AA 10 30",
+      "No controlled read retries",
       "No fuzzing or command scanning",
     ],
     [],
@@ -2366,22 +2412,23 @@ function Diagnostics({
       <Section title="Controlled Read Experiment Status">
         <InfoGrid
           items={[
-            { label: "Availability", value: "Harness only" },
-            { label: "WP10 outcome", value: "Outcome B: disabled / insufficient evidence" },
+            { label: "Availability", value: "Implemented single approved command" },
+            { label: "WP13 outcome", value: "Single controlled device-info read/query" },
             { label: "Query", value: controlledReadState.queryName },
-            { label: "Implementation", value: "Disabled / not implemented" },
-            { label: "Device-info query evidence", value: "Insufficient" },
+            { label: "Implementation", value: "Gated manual execution" },
+            { label: "Report ID", value: 0 },
+            { label: "Request length", value: 64 },
+            { label: "Retries", value: 0 },
+            { label: "Only one command", value: "AA 10 30 only" },
             { label: "Target detected", value: hidDetection.result?.targetDetected ? "Yes" : "No" },
             { label: "Selected path/interface", value: controlledReadState.selectedInterface?.path ?? "None" },
             { label: "Last run status", value: controlledReadState.runStatus },
             { label: "Response length", value: controlledReadState.result?.responseLength ?? 0 },
-            { label: "Missing evidence items", value: controlledReadState.missingEvidence.length },
-            { label: "Rust/Tauri command", value: "Not implemented" },
-            { label: "HID report send", value: "Not implemented" },
-            { label: "Fake response bytes", value: "Not included" },
+            { label: "Arbitrary command entry", value: "Not implemented" },
+            { label: "Raw command console", value: "Not implemented" },
             { label: "Keyboard setting writes", value: "Not implemented" },
             { label: "Apply/sync/save-to-device", value: "Not implemented" },
-            { label: "Unknown commands", value: "Not sent" },
+            { label: "Other official-driver commands", value: "Not implemented" },
             { label: "Fuzzing/scanning/background polling", value: "Not implemented" },
           ]}
         />
@@ -2437,7 +2484,7 @@ function About() {
           <p className="text-sm leading-6 text-slate-700">
             Please use the GitHub issue templates for bugs, feature requests, and device detection reports. Do not share
             sensitive serial numbers, private profile data, or local paths unless you are comfortable making them public.
-            Contributions should keep the public alpha local-only and read-only for keyboard hardware unless a future
+            Contributions should keep the public alpha local-only and free of keyboard hardware writes unless a future
             work package explicitly changes that scope.
           </p>
         </div>

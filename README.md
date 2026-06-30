@@ -1,18 +1,18 @@
 # AK680 Studio
 
-AK680 Studio is an unofficial, open-source native desktop public alpha for inspecting AJAZZ AK680 V2 profile exports, detecting the target keyboard with read-only HID metadata, managing local saved profile backups, editing imported profile JSON locally, and previewing future write safety plans without touching the keyboard.
+AK680 Studio is an unofficial, open-source native desktop public alpha for inspecting AJAZZ AK680 V2 profile exports, detecting the target keyboard with read-only HID metadata, running one approved controlled device-info read/query, managing local saved profile backups, editing imported profile JSON locally, and previewing future write safety plans without writing to the keyboard.
 
 This project is not affiliated with, endorsed by, or maintained by AJAZZ. The official vendor tooling remains the supported configuration path until any native hardware-write behavior is researched, documented, reviewed, and explicitly approved in a future work package.
 
 ## Public Alpha Status
 
-AK680 Studio is local-only and read-only with respect to keyboard hardware.
+AK680 Studio is local-only and does not write to keyboard hardware.
 
 - Profile imports are parsed locally.
 - Saved profiles and backups stay on this machine.
 - Local editor changes affect exported or saved local profile JSON only.
 - Dry-run write safety plans are previews only and send no packets.
-- Controlled Read Experiment remains disabled because an exact safe device-info query is not justified yet.
+- Controlled Read Experiment can run exactly one WP12-approved device-info read/query after manual confirmation.
 - Protocol Evidence Guide and Candidate Query Dossier collect evidence only and do not enable command execution.
 - HID detection enumerates safe metadata only.
 - No hardware writes are implemented.
@@ -39,7 +39,7 @@ AK680 Studio is local-only and read-only with respect to keyboard hardware.
 - Write Safety / Dry-Run Planner for abstract original-vs-edited operation summaries.
 - Device compatibility and safety checklist with backup-before-write future gate.
 - Local dry-run plan export as JSON.
-- Controlled Read Experiment harness under Protocol Research with manual gating, target path/interface selection, WP10 disabled execution state, missing-evidence reporting, and local status export.
+- Controlled Read Experiment under Protocol Research with manual gating, target path/interface selection, the single approved `AA 10 30` request, response display, and local status export.
 - Protocol Evidence Guide and Candidate Query Dossier template with local example dossier JSON export.
 - Protocol Research screen for safe HID metadata inspection and local diagnostics snapshot export.
 - Diagnostics and About screens with public-alpha safety status.
@@ -78,24 +78,35 @@ The planner does not generate real HID packets, command frames, report payloads,
 
 ## Controlled Read Experiment
 
-The Protocol Research screen includes a Controlled Read Experiment harness for future manual opt-in HID read/query research.
+The Protocol Research screen includes one controlled device-info read/query reviewed by the WP12 evidence process and implemented in WP13.
 
-Current WP10 outcome: Outcome B, still disabled. Current project research notes do not document the exact HID report type, report ID, request bytes or command framing, expected response length/format, or evidence proving a device-info query is read/query-only and not a keyboard setting write.
+Approved command only:
 
-AK680 Studio therefore does not implement a Rust controlled-read command, does not expose a Tauri controlled-read invoke, does not send any HID report, and does not fabricate response bytes. The UI, Diagnostics, and exported status JSON report this disabled state honestly. WP11 adds a Protocol Evidence Guide and Candidate Query Dossier workflow to organize future evidence without enabling execution.
+```text
+AA 10 30 00 00 00 01 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+```
 
-The harness still models the required future safety gates:
+Execution constraints:
 
 - AK680 V2 detection by VID `3141` and PID `32956`
 - Exact selected matching HID path/interface
-- Explicit user confirmation before any future implemented attempt
+- Usage page `65384` and usage `97` where metadata is available
+- Report ID `0`
+- Request length `64` bytes
+- Explicit user confirmation immediately before execution
+- One manual action sends one request
+- No retries
 - One known read/query only, never a command list
 - No automatic execution on app launch or screen open
 - No fuzzing, brute forcing, command scanning, background polling, or continuous monitoring
-- Local JSON export of the disabled/status result
-- Missing-evidence reporting for the disabled device-info query gate
+- Local JSON export of the result/status
 
-This is not write support. It does not change keyboard settings, apply profiles, sync profiles, save to device, flash firmware, calibrate hardware, or upload data remotely.
+Responses are shown as status, response length, hex bytes, minimal prefix parse, and observed VID/PID-like bytes only when present. AK680 Studio does not infer firmware version, settings state, calibration state, layout state, memory state, or profile state from the response.
+
+This is not write support. It does not change keyboard settings, apply profiles, sync profiles, save to device, flash firmware, calibrate hardware, or upload data remotely. No other official-driver connect commands are implemented.
 
 ## Protocol Evidence Guide
 
@@ -113,7 +124,7 @@ The Protocol Evidence Guide under Protocol Research lists the evidence required 
 
 The Candidate Query Dossier template includes candidate name, evidence source type, report type, report ID, request bytes/framing, expected response, target interface/path notes, read-only justification, non-write rationale, risk assessment, GPL/source cleanliness notes, reviewer notes, and status. Allowed statuses are only `draft`, `needs evidence`, `rejected`, and `ready for Red Team review`.
 
-Ready for Red Team review does not mean ready to run. Dossier evidence does not enable command execution in WP11; any future query implementation still requires a separate work package and Red Team plan. The local example dossier export contains placeholders only, no guessed packet bytes, and no GPL-derived implementation material.
+Ready for Red Team review does not mean ready to run. Dossier evidence does not enable additional command execution; any future query beyond the WP13-approved `AA 10 30` read still requires a separate work package and Red Team plan. The local example dossier export contains placeholders only, no guessed packet bytes, and no GPL-derived implementation material.
 
 ## Protocol Research
 
@@ -124,6 +135,7 @@ It can:
 - Show all detected AK680 V2 HID interfaces matching VID `3141` and PID `32956`.
 - Display safe HID metadata: VID, PID, path, manufacturer, product, serial if available, usage page, usage, interface number, and release number.
 - Cautiously mark a likely research interface only when exactly one matching interface is available from read-only metadata.
+- Run the single WP13-approved controlled device-info read/query only after explicit user confirmation and target-interface gates.
 - Export a local JSON diagnostics snapshot with timestamp, app version, matching HID metadata, imported profile summary, active local profile summary, protocol assumptions, and safety status.
 
 Protocol assumptions:
@@ -131,10 +143,10 @@ Protocol assumptions:
 - USB/wired mode is likely required for useful HID enumeration.
 - Bluetooth configuration is not supported.
 - AK680 V2 is treated as proprietary HID, not QMK/VIA.
-- Future writes require a separate work package and Red Team plan.
+- Future writes and any additional commands require a separate work package and Red Team plan.
 - GPL-3.0 repositories may be studied for behavior only; do not copy code.
 
-The Protocol Research screen does not send unknown HID command packets, read keyboard configuration through command packets, write keyboard configuration, or change keyboard settings.
+The Protocol Research screen does not send unknown HID command packets, write keyboard configuration, or change keyboard settings. The only command-capable path is the approved `AA 10 30` device-info read/query.
 
 ## Screenshots
 

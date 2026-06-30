@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased - Work Package 13
+
+- Implemented exactly one controlled device-info read/query using the existing Controlled Read Experiment harness.
+- Added the WP12-approved `AA 10 30` request only, with report ID `0` and 64 request bytes.
+- Added a Rust/Tauri controlled-read command with backend VID/PID, selected path, usagePage, and usage gating.
+- Added manual confirmation before execution, one-shot/no-retry behavior, short timeout handling, and structured success/blocked/canceled/timeout/error results.
+- Added safe response display and export with status, response length, hex bytes, minimal prefix parse, and observed VID/PID-like bytes only.
+- Updated Diagnostics with controlled-read implementation status, command scope, report ID, request length, no-retry status, and safety boundaries.
+- Updated README.md, PROJECT_PLAYBOOK.md, RESEARCH_NOTES.md, and protocol assumptions with WP13 scope and WP12 evidence basis.
+- Added frontend and Rust tests for exact bytes, report ID, request length, gates, cancellation, response formatting, export shape, and no-execution alternatives.
+
+Known limitations:
+
+- WP13 implements only the `AA 10 30` device-info read/query and no other command.
+- No firmware/settings/calibration/layout/memory/profile inference is made from response bytes.
+- No setting writes, apply/sync/save-to-device behavior, keymap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, unknown or guessed HID commands, other official-driver connect commands, retries, fuzzing, scanning, background polling, cloud sync, remote upload, database services, release publishing, or user accounts are included.
+
 ## Unreleased - Work Package 11
 
 - Added a Protocol Evidence Guide under Protocol Research.

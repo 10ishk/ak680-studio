@@ -9,7 +9,7 @@
 **Project type:** Open-source native desktop app  
 **Target device:** AJAZZ AK680 V2  
 **License:** Apache-2.0
-**Status:** Work Package 11 protocol evidence guide and dossier workflow
+**Status:** Work Package 13 single controlled device-info read/query
 
 AK680 Studio is an unofficial, open-source, lightweight native desktop app for inspecting and eventually configuring the AJAZZ AK680 V2 keyboard.
 
@@ -34,7 +34,7 @@ The long-term app should support:
 - Local backups before device writes
 - Safe, documented hardware operations
 
-Work Packages 1, 2, 3, 4, 5, and 6 are intentionally read-only and do not configure the physical keyboard. Work Package 7 adds local profile JSON editing only and still does not configure the physical keyboard. Work Package 8 adds dry-run write safety planning only and cannot execute hardware writes or generate real HID packets. Work Package 9 adds a controlled read experiment harness only. Work Package 10 keeps the device-info read/query disabled under Outcome B because exact safe-query evidence is missing. Work Package 11 adds protocol evidence guide and dossier tooling only; it does not enable command execution.
+Work Packages 1, 2, 3, 4, 5, and 6 are intentionally read-only and do not configure the physical keyboard. Work Package 7 adds local profile JSON editing only and still does not configure the physical keyboard. Work Package 8 adds dry-run write safety planning only and cannot execute hardware writes or generate real HID packets. Work Package 9 adds a controlled read experiment harness only. Work Package 10 keeps the device-info read/query disabled under Outcome B because exact safe-query evidence is missing. Work Package 11 adds protocol evidence guide and dossier tooling only. Work Package 13 implements exactly one WP12-approved controlled device-info read/query and remains not a write package.
 
 ---
 
@@ -174,6 +174,8 @@ For Work Package 9, Codex may implement a gated Controlled Read Experiment secti
 For Work Package 10, Codex may implement exactly one evidence-gated device-info read/query only if the exact query is already justified in `RESEARCH_NOTES.md` without guessing and without copying GPL-3.0 source code, comments, constants, structures, or packet implementation. If that evidence is missing, WP10 must choose Outcome B and keep execution disabled/not implemented. WP10 Outcome B may improve research notes, safety copy, Diagnostics, local export shape, and tests only. WP10 must not add Rust controlled-read commands, Tauri controlled-read invokes, HID report sends, fake response bytes, keyboard setting writes, profile apply/sync/save-to-device behavior, key remap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, unknown or guessed HID commands, fuzzing, brute forcing, command scanning, multiple command experiments, background polling, continuous monitoring, automatic command execution, arbitrary command entry, raw command consoles, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 material.
 
 For Work Package 11, Codex may add protocol evidence collection guide and Candidate Query Dossier tooling only. WP11 may list required evidence, validate dossier completeness, export a blank/example local dossier, update Controlled Read copy to point to the evidence guide, update Diagnostics with evidence status, and update docs/tests. WP11 must not add HID command execution, device-info query execution, HID report sends, keyboard setting writes, profile apply/sync/save-to-device behavior, key remap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, unknown or guessed HID commands, fuzzing, brute forcing, command scanning, multiple command experiments, background polling, continuous monitoring, automatic command execution, arbitrary command entry, raw command consoles, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 source code/comments/constants/structures/packet implementation.
+
+For Work Package 13, Codex may implement exactly one controlled device-info read/query using the existing Controlled Read Experiment harness. The only approved command is `AA 10 30` with report ID `0` and exactly 64 request bytes, run once per explicit user confirmation against AK680 V2 VID/PID `3141/32956`, exact selected HID path/interface, and usagePage `65384` / usage `97` where metadata is available. WP13 must not add any command other than `AA 10 30`, including `AA 11 38`, `AA 12 38`, `AA 13 10`, `AA 14 38`, any other official-driver connect command, setting writes, profile apply/sync/save-to-device behavior, keymap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, unknown or guessed HID commands, retries, fuzzing, brute forcing, command scanning, multiple command experiments, background polling, continuous monitoring, automatic command execution, arbitrary command entry, raw command consoles, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 source code/comments/constants/structures/packet implementation.
 
 Any future hardware-write package must include:
 
@@ -822,6 +824,92 @@ WP11 is evidence-only. Dossier completeness can reach `ready for Red Team review
 
 ---
 
+## 7k. Work Package 13 Scope
+
+### Goal
+
+Implement exactly one controlled device-info read/query using the existing Controlled Read Experiment harness.
+
+### WP12-Approved Command
+
+- Method equivalent: HID output report / WebHID `sendReport`
+- Report ID: `0`
+- Request length: `64` bytes
+- Request bytes:
+
+```text
+AA 10 30 00 00 00 01 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+```
+
+### In Scope
+
+- Preserve Work Package 1 through Work Package 11 behavior
+- Exactly one Rust backend function and one Tauri command for the controlled read
+- AK680 V2 VID/PID `3141/32956` gate
+- Exact selected matching HID path/interface gate
+- Usage page `65384` and usage `97` gate where metadata is available
+- Explicit user confirmation immediately before execution
+- One run per confirmed user action
+- Short timeout
+- Structured success, blocked, canceled, timeout, and error results
+- Safe response display: status, length, hex, minimal prefix parse, and observed VID/PID-like bytes only
+- Local JSON result export
+- Diagnostics status and safety boundaries
+- README.md, PROJECT_PLAYBOOK.md, RESEARCH_NOTES.md, and CHANGELOG.md updates
+- Tests for exact bytes, report ID, gates, results, export, and safety
+
+### Out of Scope
+
+- Any command other than exact `AA 10 30`
+- `AA 11 38`
+- `AA 12 38`
+- `AA 13 10`
+- `AA 14 38`
+- Any other official-driver connect command
+- Keyboard setting writes
+- Applying profiles to keyboard
+- Syncing profiles to keyboard
+- Save-to-device behavior
+- Key remap writes
+- RGB writes
+- RT/actuation writes
+- SOCD writes
+- Macro writes
+- Firmware flashing
+- Calibration
+- Unknown or guessed HID commands
+- Retries
+- Fuzzing
+- Brute forcing
+- Command scanning
+- Multiple command experiments
+- Background polling
+- Continuous monitoring
+- Automatic command execution on app launch or screen open
+- Arbitrary command entry
+- Raw command consoles
+- Cloud sync
+- User accounts
+- Remote upload
+- Database services
+- Release publishing
+- Electron wrapper
+- Embedded AJAZZ website
+- Copied GPL-3.0 source code, comments, constants, structures, packet framing, or implementation material
+
+### Design Rules
+
+- Exactly one controlled command may exist.
+- The frontend must not pass arbitrary payload bytes to Rust.
+- Backend must validate VID/PID and selected path before sending.
+- Backend must reject keyboard and consumer-control interfaces where metadata is available.
+- Response parsing must remain minimal and must not infer firmware, settings, calibration, layout, memory, or profile state.
+
+---
+
 ## 8. Required Screens
 
 The current app must include these screens:
@@ -841,7 +929,7 @@ The current app must include these screens:
 13. Write Safety / Dry-Run Planner
 14. Controlled Read Experiment section under Protocol Research
 
-All screens must remain read-only with respect to physical keyboard hardware.
+All screens must remain free of keyboard hardware writes. The only command-capable exception is the WP13-approved `AA 10 30` controlled device-info read/query.
 
 ---
 

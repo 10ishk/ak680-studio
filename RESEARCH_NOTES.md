@@ -62,14 +62,27 @@ The supplied sample export wraps most profile data in a top-level `profile` obje
 - WP11 adds a Protocol Evidence Guide and Candidate Query Dossier system for collecting evidence only. It does not add HID command execution, device-info query execution, HID report sends, or setting writes.
 - WP11 required evidence for any future device-info query includes exact report type, report ID if applicable, request bytes/framing, expected response length/shape, target interface/path constraints, read-only justification, non-write rationale, evidence source, and GPL cleanliness statement.
 - WP11 dossier statuses are limited to `draft`, `needs evidence`, `rejected`, and `ready for Red Team review`. A ready dossier does not enable command execution; future implementation still requires a separate work package and Red Team plan.
+- WP12 accepted one candidate query for future implementation after evidence review: HID output report / WebHID `sendReport` equivalent, report ID `0`, exact 64-byte `AA 10 30` request, target AK680 V2 VID/PID `3141/32956`, usagePage `65384`, usage `97`, exact selected path/interface, manual confirmation only.
+- WP13 implements exactly that one controlled device-info read/query. It does not implement `AA 11 38`, `AA 12 38`, `AA 13 10`, `AA 14 38`, any other official-driver connect command, retries, command scanning, fuzzing, or arbitrary command entry.
+- WP13 request bytes:
+
+```text
+AA 10 30 00 00 00 01 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+```
+
+- WP13 response display is limited to status, length, hex bytes, minimal prefix parse, and observed VID/PID-like bytes. `55 10 30` is treated only as an observed expected prefix. `45 0C BC 80` may be displayed only as observed VID/PID-like bytes consistent with `VID_0C45 / PID_80BC`.
+- WP13 must not infer firmware version, settings state, calibration state, layout state, memory state, profile state, or write support from response bytes.
+- WP13 GPL boundary: the implementation is based on project evidence review and does not copy GPL-3.0 source code, comments, constants, structures, packet framing, or implementation material.
 - USB/wired mode is likely required for useful AK680 V2 HID enumeration.
 - Bluetooth configuration is not supported.
 - AK680 V2 is treated as proprietary HID, not QMK/VIA.
 - GPL-3.0 repositories may be studied only for behavior/protocol understanding; do not copy GPL source code, comments, structures, constants, or packet code into this Apache-2.0 project.
 - Native HID command framing for safe hardware writes is unknown.
-- Native HID command framing for safe controlled reads is unknown.
-- No exact safe HID read/query command has been justified for AK680 Studio.
-- No exact safe device-info HID read/query command has been justified for AK680 Studio.
+- Native HID command framing for broad safe controlled reads remains unknown.
+- Only the WP12-approved `AA 10 30` device-info read/query has been justified for AK680 Studio.
 - Verification behavior after a hardware write is unknown.
 - Backup and restore semantics for device state are unknown.
 - Firmware flashing and calibration protocols are unknown and out of scope.
@@ -79,10 +92,10 @@ The supplied sample export wraps most profile data in a top-level `profile` obje
 - Document the read protocol before any hardware interaction is attempted.
 - Identify a safe backup format before any write feature is proposed.
 - Design a Red Team plan for the smallest possible future hardware write.
-- Identify and document one exact safe read/query command before enabling any controlled command execution.
-- For a future device-info query, document the exact report type, report ID, request bytes/framing, response length/format, timeout expectation, target interface constraints, and read-only safety rationale before implementation.
+- Keep the WP13 controlled read limited to the exact approved command and evaluate hardware results conservatively.
+- For any additional future query, document the exact report type, report ID, request bytes/framing, response length/format, timeout expectation, target interface constraints, and read-only safety rationale before implementation.
 - Use the Candidate Query Dossier format to collect evidence source, GPL/source cleanliness notes, risk assessment, and reviewer notes before proposing a future query.
 - Keep future read/query work manual opt-in, single-command only, path-gated, confirmed, and timeout-limited.
 - Require maintainer approval before adding hardware write code.
 
-Work Package 1 performs local JSON inspection only. Work Package 2 adds read-only HID enumeration only. Work Package 3 adds local-only profile storage, export, active selection, rename/delete, and read-only comparison. Work Package 4 hardens local-only profile library backup export/import and storage recovery. Work Package 5 prepares public alpha docs, safety messaging, templates, and check-only CI. Work Package 6 adds read-only protocol research metadata inspection and local diagnostics snapshots. Work Package 7 adds local-only profile JSON editing. Work Package 8 adds dry-run write safety planning without real packets. Work Package 9 adds a disabled controlled read experiment harness only. Work Package 10 keeps the device-info read query disabled under Outcome B because exact safe-query evidence is missing. Work Package 11 adds evidence guide and dossier tooling only. Hardware writes, unknown or guessed HID command packets, keyboard configuration reads/writes, cloud sync, remote upload, databases, release publishing, and user accounts remain out of scope.
+Work Package 1 performs local JSON inspection only. Work Package 2 adds read-only HID enumeration only. Work Package 3 adds local-only profile storage, export, active selection, rename/delete, and read-only comparison. Work Package 4 hardens local-only profile library backup export/import and storage recovery. Work Package 5 prepares public alpha docs, safety messaging, templates, and check-only CI. Work Package 6 adds read-only protocol research metadata inspection and local diagnostics snapshots. Work Package 7 adds local-only profile JSON editing. Work Package 8 adds dry-run write safety planning without real packets. Work Package 9 adds a disabled controlled read experiment harness only. Work Package 10 keeps the device-info read query disabled under Outcome B because exact safe-query evidence is missing. Work Package 11 adds evidence guide and dossier tooling only. Work Package 13 adds exactly one WP12-approved controlled device-info read/query. Hardware writes, unknown or guessed HID command packets, keyboard configuration writes, additional command experiments, cloud sync, remote upload, databases, release publishing, and user accounts remain out of scope.

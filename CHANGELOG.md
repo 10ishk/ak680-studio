@@ -8,10 +8,12 @@
 - Updated Diagnostics with WP14 smoke-test/release-safety status.
 - Updated README.md, PROJECT_PLAYBOOK.md, and RESEARCH_NOTES.md with WP14 scope and observation-only guidance.
 - Added frontend tests for unchanged WP13 command scope, smoke-test template shape, and safety wording.
+- Passed Red Team QA for Work Package 14 with no blockers.
 
 Known limitations:
 
 - Hardware smoke testing remains optional and manual; this implementation does not record a physical AK680 V2 success-path result unless a user performs the checklist.
+- Red Team did not independently perform a physical AK680 V2 success-path smoke test.
 - Smoke-test observations must not be treated as proof of firmware version, settings state, calibration state, layout state, memory state, profile state, or write capability.
 - No new HID commands, command behavior changes, writes, apply/sync/save-to-device behavior, retries, polling, scanning, fuzzing, raw command console, arbitrary payload input, packet editing, firmware flashing, calibration, or copied GPL-3.0 material are included.
 

@@ -11,17 +11,23 @@
 - Added a sanitized WP18 guide and fixture for local candidate-selection review export.
 - Updated README.md, PROJECT_PLAYBOOK.md, and RESEARCH_NOTES.md with WP18 scope, Outcome A, Outcome B thresholds, and future-work requirements.
 - Added frontend tests for Outcome A, synthetic Outcome B, multiple-selection rejection, non-execution, risk/reversibility thresholds, backup/rollback requirements, read-back/physical verification requirements, suspicious executable-field rejection, inert export/import, disabled future write gate, and WP13/WP16 boundary preservation.
+- Passed Red Team QA for Work Package 18 with no blockers.
 
 Known limitations:
 
 - WP18 is candidate-selection only.
+- WP18 selected Outcome A.
+- WP18 selected zero candidates.
 - WP18 does not implement, approve, enable, or execute any write command.
+- WP18 does not implement write support.
 - WP18 does not add apply/sync/save-to-device behavior or setting/keymap/lighting/RT/SOCD/macro/profile/firmware/calibration write execution.
+- WP18 does not add arbitrary command entry, raw command console, packet editor, command registry execution, retries, polling, scanning, fuzzing, brute force, probing, automatic execution, or hidden follow-up commands.
 - WP18 does not weaken the WP13/WP16 read-only command boundary.
+- WP13/WP16 read-only command behavior remains unchanged.
 - Candidate-selection records are non-executable, and candidate selection does not enable execution.
 - Backup, rollback, read-back, and physical verification evidence remain planning data only.
 - The future write gate remains disabled and requires a separate work package and Red Team plan.
-- No arbitrary command entry, raw command console, packet editor, command registry execution, retries, polling, scanning, fuzzing, brute force, probing, automatic execution, hidden follow-up command, unsupported inference, or copied GPL-3.0 material is included.
+- No unsupported inference or copied GPL-3.0 material is included.
 
 ## Unreleased - Work Package 17
 

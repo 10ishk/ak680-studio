@@ -8,6 +8,7 @@
 - Added a sanitized WP20 example export fixture.
 - Added frontend tests for preview length, report ID, target metadata, RGB byte indexes, out-of-range value handling, missing lighting warnings, disabled execution, no-HID export shape, and unchanged WP13/WP16 read-only command boundary.
 - Updated README.md and CHANGELOG.md with WP20 scope and limitations.
+- Passed Red Team QA for Work Package 20 with no blockers.
 
 Known limitations:
 

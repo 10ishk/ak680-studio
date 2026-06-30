@@ -86,6 +86,11 @@ import {
   createCandidateQueryDossierExport,
   validateCandidateQueryDossier,
 } from "./lib/protocolEvidence";
+import {
+  WP14_HARDWARE_SMOKE_TEST_CHECKLIST,
+  WP14_RELEASE_SAFETY_STATEMENTS,
+  createHardwareSmokeTestTemplate,
+} from "./lib/hardwareSmokeTest";
 import type { HidDetectionResult, HidDetectionState } from "./types/hid";
 import type { LocalProfileStorageState, LocalProfileStore, SavedLocalProfile } from "./types/localProfile";
 import type { AjazzProfile, ImportedProfile, KeyboardKey } from "./types/profile";
@@ -451,6 +456,18 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
+  function exportHardwareSmokeTestTemplate() {
+    const exportedTemplate = createHardwareSmokeTestTemplate();
+    const json = JSON.stringify(exportedTemplate, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ak680-hardware-smoke-test-template-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function runControlledDeviceInfoRead() {
     const selectedInterface = controlledReadState.selectedInterface;
     const request = createControlledReadBackendRequest(selectedInterface);
@@ -606,6 +623,7 @@ export default function App() {
               onRunControlledDeviceInfoRead={runControlledDeviceInfoRead}
               onExportControlledReadStatus={exportControlledReadStatus}
               onExportCandidateQueryDossier={exportCandidateQueryDossier}
+              onExportHardwareSmokeTestTemplate={exportHardwareSmokeTestTemplate}
               onRefresh={refreshHidDetection}
               onExportSnapshot={exportProtocolDiagnosticsSnapshot}
             />
@@ -1902,6 +1920,7 @@ function ProtocolResearch({
   onRunControlledDeviceInfoRead,
   onExportControlledReadStatus,
   onExportCandidateQueryDossier,
+  onExportHardwareSmokeTestTemplate,
   onRefresh,
   onExportSnapshot,
 }: {
@@ -1914,6 +1933,7 @@ function ProtocolResearch({
   onRunControlledDeviceInfoRead: () => void;
   onExportControlledReadStatus: () => void;
   onExportCandidateQueryDossier: () => void;
+  onExportHardwareSmokeTestTemplate: () => void;
   onRefresh: () => Promise<void>;
   onExportSnapshot: () => void;
 }) {
@@ -2167,6 +2187,52 @@ function ProtocolResearch({
                 />
               </div>
             )}
+          </div>
+        </div>
+      </Section>
+      <Section title="Hardware Smoke Test Checklist">
+        <div className="space-y-4">
+          <div className="rounded border border-copper/40 bg-copper/10 p-5">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
+              <div>
+                <p className="font-bold text-ink">Optional manual observation only</p>
+                <p className="mt-1 text-sm leading-6 text-slate-700">
+                  WP14 adds a release-safety checklist for physical AK680 V2 smoke testing. It does not run
+                  automatically, unlock additional protocol execution, change the WP13 command, or infer firmware,
+                  settings, calibration, layout, memory, profile state, or write capability from any response.
+                </p>
+              </div>
+            </div>
+          </div>
+          <InfoGrid
+            items={[
+              { label: "Smoke test status", value: "Manual / optional" },
+              { label: "Result meaning", value: "Observation only" },
+              { label: "Controlled query scope", value: "Existing WP13 AA 10 30 query only" },
+              { label: "New HID commands", value: "None" },
+              { label: "Retries/polling/scanning/fuzzing", value: "Not implemented" },
+              { label: "Raw command console / arbitrary payloads", value: "Not implemented" },
+              { label: "Writes/apply/sync/save-to-device", value: "Not implemented" },
+            ]}
+          />
+          <div className="rounded border border-line bg-white p-5">
+            <p className="font-semibold text-ink">Manual checklist</p>
+            <ul className="mt-3 grid gap-2">
+              {WP14_HARDWARE_SMOKE_TEST_CHECKLIST.map((item) => (
+                <li key={item.id} className="rounded border border-line bg-cloud px-3 py-2">
+                  <p className="text-sm font-semibold text-ink">{item.label}</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">{item.detail}</p>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={onExportHardwareSmokeTestTemplate}
+              className="mt-4 rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss"
+            >
+              Export Smoke Test Template JSON
+            </button>
           </div>
         </div>
       </Section>
@@ -2430,6 +2496,22 @@ function Diagnostics({
             { label: "Apply/sync/save-to-device", value: "Not implemented" },
             { label: "Other official-driver commands", value: "Not implemented" },
             { label: "Fuzzing/scanning/background polling", value: "Not implemented" },
+          ]}
+        />
+      </Section>
+      <Section title="Hardware Smoke Test / Release Safety Status">
+        <InfoGrid
+          items={[
+            { label: "WP14 smoke test", value: "Manual optional checklist only" },
+            { label: "Physical result status", value: "Not recorded unless a user performs the manual checklist" },
+            { label: "Result interpretation", value: "Observation only; no device state or write capability inference" },
+            { label: "WP13 command behavior", value: "Unchanged; exactly one controlled AA 10 30 query" },
+            { label: "New HID commands", value: "None added" },
+            { label: "Additional protocol execution", value: "Not implemented" },
+            { label: "Retries/polling/scanning/fuzzing", value: "Not implemented" },
+            { label: "Raw command console / arbitrary payload input", value: "Not implemented" },
+            { label: "Writes/apply/sync/save-to-device", value: "Not implemented" },
+            { label: "Safety statements", value: WP14_RELEASE_SAFETY_STATEMENTS.length },
           ]}
         />
       </Section>

@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased - Work Package 14
+
+- Added Hardware Smoke Test and release-safety polish without changing WP13 command behavior.
+- Added a manual optional hardware smoke-test checklist under Protocol Research.
+- Added a local smoke-test observation template export for recording status, response length, response hex prefix, observed VID/PID-like bytes when present, and notes.
+- Updated Diagnostics with WP14 smoke-test/release-safety status.
+- Updated README.md, PROJECT_PLAYBOOK.md, and RESEARCH_NOTES.md with WP14 scope and observation-only guidance.
+- Added frontend tests for unchanged WP13 command scope, smoke-test template shape, and safety wording.
+
+Known limitations:
+
+- Hardware smoke testing remains optional and manual; this implementation does not record a physical AK680 V2 success-path result unless a user performs the checklist.
+- Smoke-test observations must not be treated as proof of firmware version, settings state, calibration state, layout state, memory state, profile state, or write capability.
+- No new HID commands, command behavior changes, writes, apply/sync/save-to-device behavior, retries, polling, scanning, fuzzing, raw command console, arbitrary payload input, packet editing, firmware flashing, calibration, or copied GPL-3.0 material are included.
+
 ## Unreleased - Work Package 13
 
 - Implemented exactly one controlled device-info read/query using the existing Controlled Read Experiment harness.

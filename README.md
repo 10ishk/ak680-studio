@@ -13,6 +13,7 @@ AK680 Studio is local-only and does not write to keyboard hardware.
 - Local editor changes affect exported or saved local profile JSON only.
 - Dry-run write safety plans are previews only and send no packets.
 - Controlled Read Experiment can run exactly one WP12-approved device-info read/query after manual confirmation.
+- Hardware smoke-test checklist is optional, manual, and records observations only.
 - Protocol Evidence Guide and Candidate Query Dossier collect evidence only and do not enable command execution.
 - HID detection enumerates safe metadata only.
 - No hardware writes are implemented.
@@ -40,6 +41,7 @@ AK680 Studio is local-only and does not write to keyboard hardware.
 - Device compatibility and safety checklist with backup-before-write future gate.
 - Local dry-run plan export as JSON.
 - Controlled Read Experiment under Protocol Research with manual gating, target path/interface selection, the single approved `AA 10 30` request, response display, and local status export.
+- Hardware Smoke Test checklist and local observation template export for release-safety validation.
 - Protocol Evidence Guide and Candidate Query Dossier template with local example dossier JSON export.
 - Protocol Research screen for safe HID metadata inspection and local diagnostics snapshot export.
 - Diagnostics and About screens with public-alpha safety status.
@@ -108,6 +110,22 @@ Responses are shown as status, response length, hex bytes, minimal prefix parse,
 
 This is not write support. It does not change keyboard settings, apply profiles, sync profiles, save to device, flash firmware, calibrate hardware, or upload data remotely. No other official-driver connect commands are implemented.
 
+## Hardware Smoke Test / Release Safety
+
+WP14 adds a manual hardware smoke-test checklist for release-safety validation. The checklist is optional and does not run automatically. It does not add a second command, change the existing WP13 command, or unlock protocol execution.
+
+Smoke-test notes are observations only:
+
+- The only command-capable path remains the WP13 `AA 10 30` controlled device-info read/query.
+- Report ID remains `0`; request length remains `64` bytes.
+- Target gates remain AK680 V2 VID `3141`, PID `32956`, exact selected path/interface, and usage page `65384` / usage `97` where metadata is available.
+- One confirmed manual action sends at most one request.
+- No retries, polling, scanning, fuzzing, raw command console, arbitrary payload input, or packet editing is implemented.
+- No writes, apply, sync, save-to-device, setting writes, firmware flashing, or calibration is implemented.
+- A physical response must not be treated as proof of firmware version, settings state, calibration state, layout state, memory state, profile state, or write capability.
+
+The Protocol Research screen can export a local smoke-test template JSON so a tester can record status, response length, response hex prefix, observed VID/PID-like bytes when present, and plain notes without changing the keyboard.
+
 ## Protocol Evidence Guide
 
 The Protocol Evidence Guide under Protocol Research lists the evidence required before a future device-info read query can even be proposed:
@@ -136,6 +154,7 @@ It can:
 - Display safe HID metadata: VID, PID, path, manufacturer, product, serial if available, usage page, usage, interface number, and release number.
 - Cautiously mark a likely research interface only when exactly one matching interface is available from read-only metadata.
 - Run the single WP13-approved controlled device-info read/query only after explicit user confirmation and target-interface gates.
+- Show a manual hardware smoke-test checklist and export a local observation template.
 - Export a local JSON diagnostics snapshot with timestamp, app version, matching HID metadata, imported profile summary, active local profile summary, protocol assumptions, and safety status.
 
 Protocol assumptions:

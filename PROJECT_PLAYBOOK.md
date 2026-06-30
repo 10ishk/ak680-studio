@@ -177,6 +177,8 @@ For Work Package 11, Codex may add protocol evidence collection guide and Candid
 
 For Work Package 13, Codex may implement exactly one controlled device-info read/query using the existing Controlled Read Experiment harness. The only approved command is `AA 10 30` with report ID `0` and exactly 64 request bytes, run once per explicit user confirmation against AK680 V2 VID/PID `3141/32956`, exact selected HID path/interface, and usagePage `65384` / usage `97` where metadata is available. WP13 must not add any command other than `AA 10 30`, including `AA 11 38`, `AA 12 38`, `AA 13 10`, `AA 14 38`, any other official-driver connect command, setting writes, profile apply/sync/save-to-device behavior, keymap/RGB/RT/SOCD/macro writes, firmware flashing, calibration, unknown or guessed HID commands, retries, fuzzing, brute forcing, command scanning, multiple command experiments, background polling, continuous monitoring, automatic command execution, arbitrary command entry, raw command consoles, cloud sync, user accounts, remote upload, database services, release publishing, Electron, embedded AJAZZ website behavior, or copied GPL-3.0 source code/comments/constants/structures/packet implementation.
 
+For Work Package 14, Codex may add Hardware Smoke Test and release-safety polish only. WP14 may add UI/docs/Diagnostics wording, a manual smoke-test checklist, a local observation template export, and tests that pin the existing WP13 scope. WP14 must not add any new HID command, change the WP13 `AA 10 30` request bytes, report ID `0`, request length `64`, AK680 V2 VID/PID gate, usagePage `65384` / usage `97` gate, selected path/interface gate, timeout behavior, or one-shot manual behavior. WP14 must not add retries, polling, automatic execution, arbitrary command entry, raw command consoles, packet editing, writes, apply/sync/save-to-device behavior, setting writes, firmware flashing, calibration, unsupported response inference, or copied GPL-3.0 material.
+
 Any future hardware-write package must include:
 
 1. Documented command/protocol research
@@ -910,6 +912,55 @@ AA 10 30 00 00 00 01 00 00 00 00 00 00 00 00 00
 
 ---
 
+## 7l. Work Package 14 Scope
+
+### Goal
+
+Add Hardware Smoke Test and release-safety polish without changing the WP13 controlled read behavior.
+
+### In Scope
+
+- Preserve Work Package 1 through Work Package 13 behavior
+- Improve release-safety wording in UI, Diagnostics, Protocol Research, and docs
+- Add a manual hardware smoke-test checklist
+- Add a local smoke-test observation template export
+- Clarify that physical AK680 V2 results are observations only
+- Clarify that WP13 has exactly one controlled read/query
+- Clarify that no additional protocol execution, writes, apply/sync/save-to-device, retries, polling, fuzzing, scanning, raw command console, arbitrary payload input, or packet editing exists
+- Tests for safety wording and unchanged WP13 command scope
+- README.md, PROJECT_PLAYBOOK.md, RESEARCH_NOTES.md, and CHANGELOG.md updates
+
+### Out of Scope
+
+- Any new HID command
+- Changing the WP13 approved request bytes
+- Changing report ID `0`
+- Changing request length `64`
+- Changing AK680 V2 VID/PID gating
+- Changing usagePage `65384` / usage `97` gating
+- Removing exact selected path/interface gating
+- Retries
+- Polling
+- Automatic execution
+- Arbitrary command entry
+- Raw command consoles
+- Packet editing
+- Writes
+- Apply, sync, or save-to-device behavior
+- Setting writes
+- Firmware flashing
+- Calibration
+- Inferring firmware version, settings state, calibration state, layout state, memory state, profile state, or write capability from smoke-test responses
+- Copied GPL-3.0 source code, comments, constants, structures, packet builders, or implementation material
+
+### Design Rules
+
+- Smoke-test UI must be manual and observation-only.
+- Smoke-test exports must be local JSON templates only.
+- The existing WP13 controlled read code path must remain unchanged.
+
+---
+
 ## 8. Required Screens
 
 The current app must include these screens:
@@ -928,6 +979,7 @@ The current app must include these screens:
 12. Local Editor
 13. Write Safety / Dry-Run Planner
 14. Controlled Read Experiment section under Protocol Research
+15. Hardware Smoke Test checklist section under Protocol Research
 
 All screens must remain free of keyboard hardware writes. The only command-capable exception is the WP13-approved `AA 10 30` controlled device-info read/query.
 

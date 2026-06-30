@@ -141,13 +141,13 @@ describe("controlled read experiment", () => {
         message: "ok",
         reportId: 0,
         requestLength: 64,
-        responseLength: 12,
-        responseBytes: [0x55, 0x10, 0x30, 0, 0, 0, 1, 0, 0x45, 0x0c, 0xbc, 0x80],
+        responseLength: 16,
+        responseBytes: [0x55, 0x10, 0x30, 0, 0, 0, 1, 0, 0, 0, 0, 0x92, 0x45, 0x0c, 0xbc, 0x80],
       },
     });
 
     expect(result.status).toBe("success");
-    expect(result.responseHex).toBe("55 10 30 00 00 00 01 00 45 0C BC 80");
+    expect(result.responseHex).toBe("55 10 30 00 00 00 01 00 00 00 00 92 45 0C BC 80");
     expect(result.minimalParse.prefixMatchesExpected).toBe(true);
     expect(result.minimalParse.observedVidPidLikeBytes).toBe("45 0C BC 80");
     expect(result.minimalParse.notes.join(" ")).not.toMatch(/firmware version|settings state/i);

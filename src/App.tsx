@@ -2352,10 +2352,10 @@ function Diagnostics({
             { label: "Required evidence items", value: PROTOCOL_EVIDENCE_REQUIRED_ITEMS.length },
             { label: "Example dossier status", value: EXAMPLE_CANDIDATE_QUERY_DOSSIER.status },
             { label: "Example dossier complete", value: exampleDossierValidation.complete ? "Yes" : "No" },
-            { label: "Ready enables execution", value: "No" },
-            { label: "HID command execution", value: "Not implemented" },
-            { label: "Device-info query execution", value: "Not implemented" },
-            { label: "Future implementation", value: "Requires new work package and Red Team plan" },
+            { label: "Controlled device-info read", value: "Implemented for one approved AA 10 30 query only" },
+            { label: "Additional dossier-enabled execution", value: "Not implemented" },
+            { label: "Keyboard setting writes", value: "Not implemented" },
+            { label: "Apply/sync/save-to-device", value: "Not implemented" },
           ]}
         />
       </Section>

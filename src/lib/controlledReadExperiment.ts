@@ -244,7 +244,7 @@ export function createControlledReadExport({
 export function parseControlledReadResponse(bytes: number[]): ControlledReadMinimalParse {
   const prefixBytes = bytes.slice(0, 3);
   const prefix = formatResponseHex(prefixBytes);
-  const observedVidPidLikeBytes = bytes.length >= 12 ? formatResponseHex(bytes.slice(8, 12)) : undefined;
+  const observedVidPidLikeBytes = bytes.length >= 16 ? formatResponseHex(bytes.slice(12, 16)) : undefined;
 
   return {
     prefix: prefix || "Not available",

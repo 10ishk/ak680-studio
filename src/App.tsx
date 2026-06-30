@@ -119,6 +119,7 @@ import {
   createFirstWriteCandidateSelectionExport,
   reviewFirstWriteCandidateSelection,
 } from "./lib/firstWriteCandidateSelection";
+import { createLightingDryRunExport, createLightingDryRunPlan } from "./lib/lightingDryRunPlanner";
 import {
   getActiveRapidTriggerKeys,
   getGameModeSummary,
@@ -555,6 +556,18 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
+  function exportLightingDryRunPreview() {
+    const exportedPreview = createLightingDryRunExport(profile);
+    const json = JSON.stringify(exportedPreview, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ak680-lighting-dry-run-preview-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function runControlledDeviceInfoRead() {
     const selectedInterface = controlledReadState.selectedInterface;
     const request = createControlledReadBackendRequest(selectedInterface);
@@ -696,7 +709,7 @@ export default function App() {
           )}
           {activeScreen === "inspector" && <ProfileInspector profile={profile} importedProfile={importedProfile} />}
           {activeScreen === "layout" && <KeyboardLayout profile={profile} />}
-          {activeScreen === "lighting" && <Lighting profile={profile} />}
+          {activeScreen === "lighting" && <Lighting profile={profile} onExportDryRunPreview={exportLightingDryRunPreview} />}
           {activeScreen === "rapid-trigger" && <RapidTrigger profile={profile} />}
           {activeScreen === "macros" && <Macros profile={profile} />}
           {activeScreen === "protocol" && (
@@ -2009,8 +2022,15 @@ function KeyCap({ keyboardKey }: { keyboardKey: KeyboardKey }) {
   );
 }
 
-function Lighting({ profile }: { profile?: AjazzProfile }) {
+function Lighting({
+  profile,
+  onExportDryRunPreview,
+}: {
+  profile?: AjazzProfile;
+  onExportDryRunPreview: () => void;
+}) {
   const lighting = getLightingSummary(profile);
+  const dryRunPlan = createLightingDryRunPlan(profile);
   return (
     <>
       <PageHeader title="Lighting" eyebrow="LED data summary" />
@@ -2029,6 +2049,84 @@ function Lighting({ profile }: { profile?: AjazzProfile }) {
             { label: "Hardware writes", value: "Not implemented" },
           ]}
         />
+      </Section>
+      <Section title="Lighting Write Candidate Dry-Run">
+        <div className="space-y-4">
+          <div className="rounded border border-copper/40 bg-copper/10 p-5">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
+              <div>
+                <p className="font-bold text-ink">Dry-run only; execution disabled</p>
+                <p className="mt-1 text-sm leading-6 text-slate-700">
+                  WP20 creates a local preview for a future global/static lighting write candidate. It does not touch
+                  HID devices, does not write lighting, and does not add apply, sync, save-to-device, retries, polling,
+                  scanning, fuzzing, a raw command console, or arbitrary payload input. Any real lighting write requires
+                  a separate future work package and Red Team plan.
+                </p>
+              </div>
+            </div>
+          </div>
+          <InfoGrid
+            items={[
+              { label: "Source profile", value: dryRunPlan.source.profileName },
+              { label: "Source lighting data", value: dryRunPlan.source.hasLedEffect ? "ledEffect present" : "Missing" },
+              { label: "Target device", value: dryRunPlan.targetMetadata.device },
+              { label: "Target VID/PID", value: `${dryRunPlan.targetMetadata.vendorId}/${dryRunPlan.targetMetadata.productId}` },
+              {
+                label: "Required usagePage / usage",
+                value: `${dryRunPlan.targetMetadata.usagePage} / ${dryRunPlan.targetMetadata.usage}`,
+              },
+              { label: "Report ID", value: dryRunPlan.reportMetadata.reportId },
+              { label: "Preview length", value: `${dryRunPlan.packetPreview.reportLength} bytes` },
+              { label: "Preview format", value: dryRunPlan.packetPreview.format },
+              { label: "Execution", value: dryRunPlan.executionState.status },
+              { label: "HID access during planning", value: dryRunPlan.executionState.hidAccessDuringPlanning ? "Yes" : "No" },
+              { label: "Write support", value: dryRunPlan.executionState.writeSupport ? "Enabled" : "Disabled" },
+              { label: "Retries", value: dryRunPlan.reportMetadata.retriesAllowed ? "Allowed" : "Not allowed" },
+              { label: "Polling", value: dryRunPlan.reportMetadata.pollingAllowed ? "Allowed" : "Not allowed" },
+            ]}
+          />
+          <div className="rounded border border-line bg-white p-5">
+            <p className="font-semibold text-ink">Non-executable packet preview</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              RGB preview bytes are shown at indexes {dryRunPlan.packetPreview.rgbByteIndexes.red},{" "}
+              {dryRunPlan.packetPreview.rgbByteIndexes.green}, and {dryRunPlan.packetPreview.rgbByteIndexes.blue}.
+              Reserved/unknown bytes remain separated and are not interpreted.
+            </p>
+            <pre className="mt-3 max-h-44 overflow-auto rounded border border-line bg-cloud p-3 text-xs leading-6 text-slate-800">
+              {dryRunPlan.packetPreview.hex}
+            </pre>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">Warnings and unknowns</p>
+              <ul className="mt-3 grid gap-2">
+                {[...dryRunPlan.warnings, ...dryRunPlan.packetPreview.unknownOrReservedByteRanges].map((warning) => (
+                  <li key={warning} className="rounded border border-line bg-cloud px-3 py-2 text-sm text-slate-700">
+                    {warning}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">Future WP21 safety checklist</p>
+              <ul className="mt-3 grid gap-2">
+                {dryRunPlan.futureWp21Checklist.map((item) => (
+                  <li key={item.item} className="rounded border border-line bg-cloud px-3 py-2 text-sm text-slate-700">
+                    {item.item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onExportDryRunPreview}
+            className="rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss"
+          >
+            Download Dry-Run Preview JSON
+          </button>
+        </div>
       </Section>
       <Section title="LED Effect">
         <JsonPreview data={profile?.ledEffect} />
@@ -2879,6 +2977,7 @@ function Diagnostics({
   });
   const firstWriteValidation = validateFirstWriteEvidencePack(EXAMPLE_FIRST_WRITE_EVIDENCE_PACK);
   const firstWriteSelection = reviewFirstWriteCandidateSelection(EXAMPLE_FIRST_WRITE_EVIDENCE_PACK);
+  const lightingDryRunPlan = createLightingDryRunPlan(profile);
   const safetyItems = useMemo(
     () => [
       "No hardware write commands",
@@ -2915,6 +3014,9 @@ function Diagnostics({
       "WP18 candidate selection is non-executable",
       "WP18 Outcome A selects zero candidates",
       "WP18 future write gate remains disabled",
+      "WP20 lighting dry-run planner is non-executable",
+      "WP20 adds no lighting write command",
+      "WP20 preview/export does not touch HID devices",
     ],
     [],
   );
@@ -3046,6 +3148,30 @@ function Diagnostics({
             { label: "No packets sent", value: "Confirmed" },
             { label: "Hardware writes", value: "Not implemented" },
             { label: "Execution", value: dryRunPlan.execution.status },
+          ]}
+        />
+      </Section>
+      <Section title="Lighting Write Candidate Dry-Run Status">
+        <InfoGrid
+          items={[
+            { label: "WP20 scope", value: "Local-only dry-run planner" },
+            { label: "Source lighting data", value: lightingDryRunPlan.source.hasLedEffect ? "ledEffect present" : "Missing" },
+            { label: "Target VID/PID", value: `${lightingDryRunPlan.targetMetadata.vendorId}/${lightingDryRunPlan.targetMetadata.productId}` },
+            {
+              label: "Required usagePage / usage",
+              value: `${lightingDryRunPlan.targetMetadata.usagePage} / ${lightingDryRunPlan.targetMetadata.usage}`,
+            },
+            { label: "Report ID", value: lightingDryRunPlan.reportMetadata.reportId },
+            { label: "Preview length", value: lightingDryRunPlan.packetPreview.reportLength },
+            { label: "Preview format", value: lightingDryRunPlan.packetPreview.format },
+            { label: "Execution", value: lightingDryRunPlan.executionState.status },
+            { label: "HID access during planning", value: lightingDryRunPlan.executionState.hidAccessDuringPlanning ? "Yes" : "No" },
+            { label: "Command execution enabled", value: lightingDryRunPlan.executionState.commandExecutionEnabled ? "Yes" : "No" },
+            { label: "Write support", value: lightingDryRunPlan.executionState.writeSupport ? "Enabled" : "Disabled" },
+            { label: "Retries", value: lightingDryRunPlan.reportMetadata.retriesAllowed ? "Allowed" : "Not allowed" },
+            { label: "Polling", value: lightingDryRunPlan.reportMetadata.pollingAllowed ? "Allowed" : "Not allowed" },
+            { label: "Automatic execution", value: lightingDryRunPlan.reportMetadata.automaticExecutionAllowed ? "Allowed" : "Not allowed" },
+            { label: "Future real write", value: "Requires separate work package and Red Team plan" },
           ]}
         />
       </Section>

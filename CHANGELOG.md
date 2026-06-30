@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased - Work Package 20
+
+- Added a local-only Lighting Write Candidate Dry-Run Planner for a possible future first controlled global/static lighting write candidate.
+- Added TypeScript planner helpers for AK680 V2 target metadata, report ID `0`, 64-byte report metadata, source `ledEffect` data, sanitized preview bytes, warnings, disabled execution state, and future WP21 checklist items.
+- Added Lighting and Diagnostics UI sections that show the dry-run preview as non-executable local planning data.
+- Added a sanitized WP20 example export fixture.
+- Added frontend tests for preview length, report ID, target metadata, RGB byte indexes, out-of-range value handling, missing lighting warnings, disabled execution, no-HID export shape, and unchanged WP13/WP16 read-only command boundary.
+- Updated README.md and CHANGELOG.md with WP20 scope and limitations.
+
+Known limitations:
+
+- WP20 is dry-run planning only.
+- WP20 does not add an executable HID command, Tauri write command, lighting write execution, apply/sync/save-to-device behavior, retries, polling, scanning, fuzzing, probing, raw command console, arbitrary payload input, packet editor, command registry execution, or hidden follow-up command.
+- WP20 does not weaken the WP13/WP16 read-only command gates.
+- The preview bytes are sanitized local planning data, not approved executable HID protocol.
+- Future real lighting-write work requires a separate work package and Red Team plan.
+- Raw WebHID logs, research dumps, private traces, scratch files, serials, tokens, secrets, and local paths remain uncommitted.
+
 ## Unreleased - Work Package 19
 
 - Added official AJAZZ AK680 V2 profile model helpers for local-only imported profile inspection.

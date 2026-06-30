@@ -19,6 +19,7 @@ AK680 Studio is local-only and does not write to keyboard hardware.
 - First Write Evidence Plan organizes future first setting-write evidence as non-executable local records only.
 - First Write Candidate Selection reviews WP17 evidence and records Outcome A with no selected write candidate.
 - Official Profile Model parses the AJAZZ AK680 V2 exported profile format locally.
+- Lighting Write Candidate Dry-Run Planner previews a local non-executable future lighting-write candidate.
 - Protocol Evidence Guide and Candidate Query Dossier collect evidence only and do not enable command execution.
 - HID detection enumerates safe metadata only.
 - No hardware writes are implemented.
@@ -52,6 +53,7 @@ AK680 Studio is local-only and does not write to keyboard hardware.
 - First Write Evidence Plan with risk/reversibility scoring, backup/rollback/read-back evidence requirements, disabled write-readiness checklist, and local example export.
 - First Write Candidate Selection with Outcome A, candidate rejection rationale, threshold checks, and local example export.
 - Official Profile Model summaries for device/profile data, key layout, SOCD assignments, active RT keys, lighting, game mode, custom LED slots, macros, and DKS section presence.
+- Lighting Write Candidate Dry-Run Planner with AK680 V2 target metadata, report metadata, sanitized 64-byte preview bytes, warnings, disabled execution state, and a future WP21 checklist.
 - Protocol Evidence Guide and Candidate Query Dossier template with local example dossier JSON export.
 - Protocol Research screen for safe HID metadata inspection and local diagnostics snapshot export.
 - Diagnostics and About screens with public-alpha safety status.
@@ -235,6 +237,22 @@ WP19 integrates the official AJAZZ AK680 V2 exported profile JSON format as loca
 SOCD assignments are detected only from imported profile keys where `userKey.page === "SOCD"`. Active RT/actuation keys are detected from non-default `magneticAxisRT` and `magneticAxisRTConfig` entries, then mapped to `keyList.value` where possible. Unmapped indexes stay labeled as unmapped.
 
 The official profile model is local-only. It does not read live keyboard settings, write lighting, write RT/actuation, write SOCD, write keymaps, write macros, apply profiles, sync, save to device, or add any new HID command.
+
+## Lighting Write Candidate Dry-Run Planner
+
+WP20 adds a local-only dry-run planner for a possible future first controlled global/static lighting write candidate. It uses the imported official profile `ledEffect` as source data and displays:
+
+- AK680 V2 target metadata: VID `3141`, PID `32956`, usage page `65384`, usage `97`
+- Report metadata: report ID `0`, 64-byte report length
+- Source lighting fields from the local profile
+- Sanitized, non-executable preview bytes with RGB indexes documented
+- Warnings for missing or out-of-range lighting fields
+- Disabled execution state
+- A future WP21 manual safety checklist
+
+The preview format is `sanitized-global-static-lighting-preview-v1`. It is not an approved vendor command and must not be treated as executable HID protocol. The planner does not touch HID devices, does not add a Tauri write command, does not change WP13/WP16 read-only gates, and does not implement lighting writes, apply/sync/save-to-device behavior, retries, polling, scanning, fuzzing, packet editing, raw command console, arbitrary payload input, or command registry execution.
+
+Future real lighting-write work requires a separate work package and Red Team plan. See [fixtures/wp20-lighting-dry-run.example.json](fixtures/wp20-lighting-dry-run.example.json) for a sanitized example export shape.
 
 ## Protocol Research
 

@@ -1,0 +1,176 @@
+{
+  "exportedAt": "2026-07-01T00:00:00.000Z",
+  "exportType": "ak680-lighting-write-candidate-dry-run",
+  "localOnly": true,
+  "noHidAccess": true,
+  "plan": {
+    "package": "WP20",
+    "title": "First Lighting Write Candidate Dry-Run Planner",
+    "dryRunOnly": true,
+    "source": {
+      "profileName": "Sanitized AK680 V2 lighting example",
+      "hasLedEffect": true,
+      "ledEffect": {
+        "mode": 1,
+        "red": 255,
+        "green": 0,
+        "blue": 0,
+        "brightness": 100,
+        "speed": 5,
+        "direction": 0,
+        "colorMode": 1
+      }
+    },
+    "targetMetadata": {
+      "device": "AJAZZ AK680 V2",
+      "vendorId": 3141,
+      "productId": 32956,
+      "usagePage": 65384,
+      "usage": 97,
+      "reportId": 0,
+      "reportLength": 64
+    },
+    "reportMetadata": {
+      "reportId": 0,
+      "reportLength": 64,
+      "oneShotFutureRequirement": true,
+      "retriesAllowed": false,
+      "pollingAllowed": false,
+      "automaticExecutionAllowed": false
+    },
+    "packetPreview": {
+      "format": "sanitized-global-static-lighting-preview-v1",
+      "reportId": 0,
+      "reportLength": 64,
+      "bytes": [
+        160,
+        32,
+        1,
+        255,
+        0,
+        0,
+        100,
+        5,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "hex": "A0 20 01 FF 00 00 64 05 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+      "rgbByteIndexes": {
+        "red": 3,
+        "green": 4,
+        "blue": 5
+      },
+      "unknownOrReservedByteRanges": [
+        "10..63 are reserved/unknown and zero-filled for this non-executable preview."
+      ]
+    },
+    "warnings": [
+      "Packet bytes are a sanitized local preview, not an approved executable HID command.",
+      "WP20 does not infer firmware, settings, calibration, layout, memory, profile state, or write capability."
+    ],
+    "executionState": {
+      "enabled": false,
+      "status": "disabled",
+      "hidAccessDuringPlanning": false,
+      "commandExecutionEnabled": false,
+      "writeSupport": false,
+      "reason": "WP20 creates a local dry-run preview only. Real lighting writes require a separate work package and Red Team plan."
+    },
+    "futureWp21Checklist": [
+      {
+        "item": "Confirm AK680 V2 only with VID 3141 and PID 32956.",
+        "state": "future-manual-check"
+      },
+      {
+        "item": "Confirm selected HID interface uses usagePage 65384 and usage 97 where metadata is available.",
+        "state": "future-manual-check"
+      },
+      {
+        "item": "Confirm report ID 0 and 64-byte report length before any future execution work.",
+        "state": "future-manual-check"
+      },
+      {
+        "item": "Review exact future bytes against independent evidence, not this dry-run preview alone.",
+        "state": "future-manual-check"
+      },
+      {
+        "item": "Back up the current lighting/profile state before any future write package.",
+        "state": "future-manual-check"
+      },
+      {
+        "item": "Document rollback or recovery steps before any future write package.",
+        "state": "future-manual-check"
+      },
+      {
+        "item": "Physically verify the keyboard state after any future Red-Team-approved write.",
+        "state": "future-manual-check"
+      },
+      {
+        "item": "Require explicit manual confirmation in the future write package.",
+        "state": "future-manual-check"
+      },
+      {
+        "item": "Run one-shot only with no retry, polling, or automatic execution.",
+        "state": "future-manual-check"
+      },
+      {
+        "item": "Require a separate future work package and Red Team plan before real writing.",
+        "state": "future-manual-check"
+      }
+    ]
+  }
+}

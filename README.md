@@ -17,6 +17,7 @@ AK680 Studio is local-only and does not write to keyboard hardware.
 - Read Protocol Evidence Pack organizes future read-only settings evidence as non-executable local records only.
 - Read-Only Settings Foundation provides a local snapshot viewer, conservative compare UI, and disabled future write gate.
 - First Write Evidence Plan organizes future first setting-write evidence as non-executable local records only.
+- First Write Candidate Selection reviews WP17 evidence and records Outcome A with no selected write candidate.
 - Protocol Evidence Guide and Candidate Query Dossier collect evidence only and do not enable command execution.
 - HID detection enumerates safe metadata only.
 - No hardware writes are implemented.
@@ -48,6 +49,7 @@ AK680 Studio is local-only and does not write to keyboard hardware.
 - Read Protocol Evidence Pack export with validation, completeness scoring, and non-executable candidate classifications.
 - Read-Only Settings Foundation with the existing WP13 read as the only approved command, local snapshot export, conservative compare categories, and disabled future write gate.
 - First Write Evidence Plan with risk/reversibility scoring, backup/rollback/read-back evidence requirements, disabled write-readiness checklist, and local example export.
+- First Write Candidate Selection with Outcome A, candidate rejection rationale, threshold checks, and local example export.
 - Protocol Evidence Guide and Candidate Query Dossier template with local example dossier JSON export.
 - Protocol Research screen for safe HID metadata inspection and local diagnostics snapshot export.
 - Diagnostics and About screens with public-alpha safety status.
@@ -197,6 +199,21 @@ The disabled write-readiness checklist is planning guidance only. Backup evidenc
 
 See [WP17_FIRST_WRITE_EVIDENCE_PLAN.md](WP17_FIRST_WRITE_EVIDENCE_PLAN.md) and [fixtures/wp17-first-write-evidence.example.json](fixtures/wp17-first-write-evidence.example.json).
 
+## First Write Candidate Selection
+
+WP18 reviews WP17 first-write evidence and records one of two non-execution outcomes:
+
+- Outcome A: no candidate selected.
+- Outcome B: exactly one candidate selected for future work-package review only.
+
+The current WP18 review chooses Outcome A. The WP17 placeholder evidence does not include exact request bytes, report ID, request length, clear visual-only or single-setting mutation scope, low enough risk, high enough reversibility, complete backup evidence, complete rollback evidence, or complete read-back/physical verification evidence. The keymap candidate is rejected as too risky and not first-write appropriate.
+
+Outcome B would require risk score `1` or `2`, reversibility score `4` or `5`, hardware-risk classification `visual-only-low-risk` or `single-setting-low-risk`, visual-only or single-setting mutation scope, backup evidence, rollback evidence, read-back or physical verification evidence, GPL/source-cleanliness confirmation, exact request bytes, report ID, request length, and a separate future work package with Red Team review.
+
+Candidate selection records are non-executable. Candidate selection does not approve writing, implement write support, enable write support, or bypass the disabled future write gate. Backup, rollback, read-back, and physical verification evidence remain planning data only.
+
+See [WP18_FIRST_WRITE_CANDIDATE_SELECTION.md](WP18_FIRST_WRITE_CANDIDATE_SELECTION.md) and [fixtures/wp18-first-write-candidate-selection.example.json](fixtures/wp18-first-write-candidate-selection.example.json).
+
 ## Protocol Research
 
 The Protocol Research screen is a read-only, experimental toolkit for future AK680 V2 protocol work.
@@ -211,6 +228,7 @@ It can:
 - Review and export local WP15 read-protocol evidence packs as non-executable data.
 - View/export local WP16 read-only snapshots and conservative snapshot/profile comparisons.
 - Review/export local WP17 first-write evidence packs as non-executable planning data.
+- Review/export local WP18 first-write candidate-selection records as non-executable planning data.
 - Export a local JSON diagnostics snapshot with timestamp, app version, matching HID metadata, imported profile summary, active local profile summary, protocol assumptions, and safety status.
 
 Protocol assumptions:
@@ -221,7 +239,7 @@ Protocol assumptions:
 - Future writes and any additional commands require a separate work package and Red Team plan.
 - GPL-3.0 repositories may be studied for behavior only; do not copy code.
 
-The Protocol Research screen does not send unknown HID command packets, write keyboard configuration, or change keyboard settings. The only command-capable path is the approved `AA 10 30` device-info read/query. WP15 evidence validation, WP16 snapshot/viewer/compare/export, WP17 first-write evidence validation/classification/export, import shape checks, and export are local data operations and do not touch HID devices.
+The Protocol Research screen does not send unknown HID command packets, write keyboard configuration, or change keyboard settings. The only command-capable path is the approved `AA 10 30` device-info read/query. WP15 evidence validation, WP16 snapshot/viewer/compare/export, WP17 first-write evidence validation/classification/export, WP18 candidate-selection review/export, import shape checks, and export are local data operations and do not touch HID devices.
 
 ## Screenshots
 

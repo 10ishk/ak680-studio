@@ -115,6 +115,11 @@ import {
   createFirstWriteEvidenceExport,
   validateFirstWriteEvidencePack,
 } from "./lib/firstWriteEvidence";
+import {
+  WP18_SAFETY_NOTES,
+  createFirstWriteCandidateSelectionExport,
+  reviewFirstWriteCandidateSelection,
+} from "./lib/firstWriteCandidateSelection";
 import type { HidDetectionResult, HidDetectionState } from "./types/hid";
 import type { LocalProfileStorageState, LocalProfileStore, SavedLocalProfile } from "./types/localProfile";
 import type { AjazzProfile, ImportedProfile, KeyboardKey } from "./types/profile";
@@ -533,6 +538,18 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
+  function exportFirstWriteCandidateSelection() {
+    const exportedSelection = createFirstWriteCandidateSelectionExport();
+    const json = JSON.stringify(exportedSelection, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ak680-first-write-candidate-selection-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function runControlledDeviceInfoRead() {
     const selectedInterface = controlledReadState.selectedInterface;
     const request = createControlledReadBackendRequest(selectedInterface);
@@ -692,6 +709,7 @@ export default function App() {
               onExportReadProtocolEvidencePack={exportReadProtocolEvidencePack}
               onExportReadOnlySnapshot={exportReadOnlySnapshot}
               onExportFirstWriteEvidencePlan={exportFirstWriteEvidencePlan}
+              onExportFirstWriteCandidateSelection={exportFirstWriteCandidateSelection}
               onRefresh={refreshHidDetection}
               onExportSnapshot={exportProtocolDiagnosticsSnapshot}
             />
@@ -1992,6 +2010,7 @@ function ProtocolResearch({
   onExportReadProtocolEvidencePack,
   onExportReadOnlySnapshot,
   onExportFirstWriteEvidencePlan,
+  onExportFirstWriteCandidateSelection,
   onRefresh,
   onExportSnapshot,
 }: {
@@ -2008,6 +2027,7 @@ function ProtocolResearch({
   onExportReadProtocolEvidencePack: () => void;
   onExportReadOnlySnapshot: () => void;
   onExportFirstWriteEvidencePlan: () => void;
+  onExportFirstWriteCandidateSelection: () => void;
   onRefresh: () => Promise<void>;
   onExportSnapshot: () => void;
 }) {
@@ -2024,6 +2044,7 @@ function ProtocolResearch({
   });
   const readOnlyComparison = createSnapshotProfileComparison({ snapshot: readOnlySnapshot, profile });
   const firstWriteValidation = validateFirstWriteEvidencePack(EXAMPLE_FIRST_WRITE_EVIDENCE_PACK);
+  const firstWriteSelection = reviewFirstWriteCandidateSelection(EXAMPLE_FIRST_WRITE_EVIDENCE_PACK);
 
   return (
     <>
@@ -2372,6 +2393,90 @@ function ProtocolResearch({
           </div>
         </div>
       </Section>
+      <Section title="First Write Candidate Selection">
+        <div className="space-y-4">
+          <div className="rounded border border-copper/40 bg-copper/10 p-5">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
+              <div>
+                <p className="font-bold text-ink">Candidate-selection only</p>
+                <p className="mt-1 text-sm leading-6 text-slate-700">
+                  WP18 reviews WP17 first-write evidence and records Outcome A or Outcome B. The current review records
+                  Outcome A: no candidate is selected. Candidate selection does not implement, approve, enable, or
+                  execute write behavior.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">Selection outcome</p>
+              <InfoGrid
+                items={[
+                  { label: "Outcome", value: firstWriteSelection.outcome },
+                  { label: "Selected candidates", value: firstWriteSelection.selectedCandidateCount },
+                  { label: "Write command approved", value: "No" },
+                  { label: "Write support implemented", value: "No" },
+                  { label: "Candidate selection enables execution", value: "No" },
+                  { label: "Future write gate", value: firstWriteSelection.futureWriteGate },
+                  { label: "Existing executable command", value: "wp13-device-info-read only" },
+                  { label: "Validation/export touches HID", value: "No" },
+                ]}
+              />
+              <button
+                type="button"
+                onClick={onExportFirstWriteCandidateSelection}
+                className="mt-4 rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss"
+              >
+                Export Candidate Selection Review
+              </button>
+            </div>
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">Outcome A rationale</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{firstWriteSelection.rejectionSummary}</p>
+              <InfoGrid
+                items={[
+                  { label: "Risk rationale", value: firstWriteSelection.riskRationale },
+                  { label: "Evidence gaps", value: firstWriteSelection.evidenceGaps.length },
+                  { label: "Backup/rollback gaps", value: firstWriteSelection.backupRollbackGaps.length },
+                  {
+                    label: "Read-back / physical verification gaps",
+                    value: firstWriteSelection.readBackPhysicalVerificationGaps.length,
+                  },
+                  { label: "GPL/source-cleanliness gaps", value: firstWriteSelection.gplSourceCleanlinessGaps.length },
+                  { label: "Future implementation", value: "Requires separate WP and Red Team plan" },
+                ]}
+              />
+            </div>
+          </div>
+          <div className="overflow-x-auto rounded border border-line bg-white">
+            <table className="min-w-full border-collapse text-left text-sm">
+              <thead className="bg-cloud text-xs uppercase tracking-wide text-moss">
+                <tr>
+                  <th className="border-b border-line px-3 py-3">Candidate</th>
+                  <th className="border-b border-line px-3 py-3">Selection status</th>
+                  <th className="border-b border-line px-3 py-3">Risk</th>
+                  <th className="border-b border-line px-3 py-3">Reversibility</th>
+                  <th className="border-b border-line px-3 py-3">Classification</th>
+                  <th className="border-b border-line px-3 py-3">Rationale</th>
+                </tr>
+              </thead>
+              <tbody>
+                {firstWriteSelection.records.map((record) => (
+                  <tr key={record.candidateId} className="align-top">
+                    <td className="border-b border-line px-3 py-3 font-semibold text-ink">{record.title}</td>
+                    <td className="border-b border-line px-3 py-3">{record.selectionStatus}</td>
+                    <td className="border-b border-line px-3 py-3">{record.riskScore}</td>
+                    <td className="border-b border-line px-3 py-3">{record.reversibilityScore}</td>
+                    <td className="border-b border-line px-3 py-3">{record.hardwareRiskClassification}</td>
+                    <td className="border-b border-line px-3 py-3">{record.rejectionRationale || record.selectionRationale}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </Section>
       <Section title="Controlled Read Experiment">
         <div className="space-y-4">
           <div className="rounded border border-copper/40 bg-copper/10 p-5">
@@ -2645,6 +2750,7 @@ function Diagnostics({
     appVersion: APP_VERSION,
   });
   const firstWriteValidation = validateFirstWriteEvidencePack(EXAMPLE_FIRST_WRITE_EVIDENCE_PACK);
+  const firstWriteSelection = reviewFirstWriteCandidateSelection(EXAMPLE_FIRST_WRITE_EVIDENCE_PACK);
   const safetyItems = useMemo(
     () => [
       "No hardware write commands",
@@ -2678,6 +2784,9 @@ function Diagnostics({
       "WP17 first-write planning is evidence-only",
       "WP17 candidate records are non-executable",
       "WP17 backup/rollback/read-back evidence does not enable execution",
+      "WP18 candidate selection is non-executable",
+      "WP18 Outcome A selects zero candidates",
+      "WP18 future write gate remains disabled",
     ],
     [],
   );
@@ -2878,6 +2987,29 @@ function Diagnostics({
             { label: "Validation/import/export touches HID", value: "No" },
             { label: "GPL/source cleanliness required", value: "Yes" },
             { label: "Safety notes", value: WP17_SAFETY_NOTES.length },
+          ]}
+        />
+      </Section>
+      <Section title="First Write Candidate Selection Status">
+        <InfoGrid
+          items={[
+            { label: "WP18 scope", value: "Candidate selection only" },
+            { label: "Outcome", value: firstWriteSelection.outcome },
+            { label: "Selected candidates", value: firstWriteSelection.selectedCandidateCount },
+            { label: "Review records", value: firstWriteSelection.records.length },
+            { label: "Write support", value: "Not implemented" },
+            { label: "Write execution approved", value: "No" },
+            { label: "Candidate selection enables execution", value: "No" },
+            { label: "Future write gate", value: firstWriteSelection.futureWriteGate },
+            { label: "Existing approved command", value: firstWriteSelection.existingExecutableBoundary },
+            { label: "WP13/WP16 boundary", value: "Unchanged" },
+            { label: "Writes/apply/sync/save-to-device", value: "Not implemented" },
+            { label: "Setting/keymap/lighting/RT/SOCD/macro/profile/firmware/calibration writes", value: "Not implemented" },
+            { label: "Raw command console / arbitrary payload / packet editor", value: "Not implemented" },
+            { label: "Retries/polling/scanning/fuzzing/probing/automatic execution", value: "Not implemented" },
+            { label: "Validation/import/export touches HID", value: "No" },
+            { label: "GPL/source cleanliness", value: "Preserved" },
+            { label: "Safety notes", value: WP18_SAFETY_NOTES.length },
           ]}
         />
       </Section>

@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased - Work Package 18
+
+- Added First Controlled Setting Write Candidate Selection as a candidate-selection-only package.
+- Added inert TypeScript models for Outcome A, Outcome B, candidate selection records, selection statuses, review results, export shape, and safety notes.
+- Added selection statuses: `not-selected`, `rejected-insufficient-evidence`, `rejected-too-risky`, `rejected-not-first-write-appropriate`, and `selected-for-future-WP-review`.
+- Added review logic for WP17 first-write evidence, including one-candidate maximum, risk/reversibility thresholds, hardware-risk checks, mutation-scope checks, backup/rollback checks, read-back or physical verification checks, GPL/source-cleanliness checks, and suspicious executable-field rejection.
+- Recorded Outcome A for the current WP17 evidence: no candidate is selected for future implementation.
+- Added Protocol Research and Diagnostics UI sections for WP18 candidate-selection status, Outcome A rationale, candidate rejection table, local export, and safety boundaries.
+- Added a sanitized WP18 guide and fixture for local candidate-selection review export.
+- Updated README.md, PROJECT_PLAYBOOK.md, and RESEARCH_NOTES.md with WP18 scope, Outcome A, Outcome B thresholds, and future-work requirements.
+- Added frontend tests for Outcome A, synthetic Outcome B, multiple-selection rejection, non-execution, risk/reversibility thresholds, backup/rollback requirements, read-back/physical verification requirements, suspicious executable-field rejection, inert export/import, disabled future write gate, and WP13/WP16 boundary preservation.
+
+Known limitations:
+
+- WP18 is candidate-selection only.
+- WP18 does not implement, approve, enable, or execute any write command.
+- WP18 does not add apply/sync/save-to-device behavior or setting/keymap/lighting/RT/SOCD/macro/profile/firmware/calibration write execution.
+- WP18 does not weaken the WP13/WP16 read-only command boundary.
+- Candidate-selection records are non-executable, and candidate selection does not enable execution.
+- Backup, rollback, read-back, and physical verification evidence remain planning data only.
+- The future write gate remains disabled and requires a separate work package and Red Team plan.
+- No arbitrary command entry, raw command console, packet editor, command registry execution, retries, polling, scanning, fuzzing, brute force, probing, automatic execution, hidden follow-up command, unsupported inference, or copied GPL-3.0 material is included.
+
 ## Unreleased - Work Package 17
 
 - Added the First Controlled Setting Write Evidence Plan as an evidence-only planning package.

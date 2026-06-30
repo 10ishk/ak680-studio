@@ -185,6 +185,8 @@ For Work Package 16, Codex may add a read-only settings foundation pack. WP16 ma
 
 For Work Package 17, Codex may add a First Controlled Setting Write Evidence Plan only. WP17 may define inert local evidence models, candidate write dossier models, validation, conservative risk scoring, reversibility scoring, hardware-risk classification, backup/rollback/read-back/physical verification evidence requirements, suspicious executable-field rejection, disabled write-readiness checklist data, Protocol Research and Diagnostics review sections, local JSON example export, docs, fixtures, and tests. WP17 must not implement, approve, enable, or execute any write command. WP17 must not change the existing WP13/WP16 `wp13-device-info-read` command behavior or gates, add any HID command, add writes, apply/sync/save-to-device behavior, setting writes, keymap/lighting/RT/SOCD/macro/profile writes, firmware flashing, calibration, raw command consoles, arbitrary command entry, packet editing, command registry execution, retries, polling, scanning, fuzzing, brute force, probing, automatic execution, hidden follow-up commands, unsupported inference, write-support claims, or copied GPL-3.0 material.
 
+For Work Package 18, Codex may add First Controlled Setting Write Candidate Selection only. WP18 may review WP17 first-write evidence/candidate records, record Outcome A with zero selected candidates or Outcome B with exactly one candidate selected for future work-package review, validate that no more than one candidate is selected, enforce risk/reversibility/backup/rollback/read-back/physical-verification/GPL/source-cleanliness thresholds, export local inert selection records, update Protocol Research and Diagnostics wording, update docs/fixtures/tests, and keep the future write gate disabled. WP18 must not implement, approve, enable, or execute any write command; add write paths, apply/sync/save-to-device behavior, setting/keymap/lighting/RT/SOCD/macro/profile/firmware/calibration writes, raw command consoles, arbitrary command entry, packet editing, command registry execution, retries, polling, scanning, fuzzing, brute force, probing, automatic execution, hidden follow-up commands, write-support claims, first-write-ready claims, WP13/WP16 boundary changes, or copied GPL-3.0 material.
+
 Any future hardware-write package must include:
 
 1. Documented command/protocol research
@@ -1142,6 +1144,76 @@ Add a First Controlled Setting Write Evidence Plan without implementing, approvi
 
 ---
 
+## 7p. Work Package 18 Scope
+
+### Goal
+
+Add First Controlled Setting Write Candidate Selection without implementing, approving, enabling, or executing write behavior.
+
+### Outcome Decision
+
+WP18 selects Outcome A for the current WP17 evidence pack: no candidate is selected for future implementation. The available WP17 visual lighting placeholder lacks exact request bytes, report ID, request length, clear mutation scope, low-risk classification, sufficient reversibility, complete backup evidence, complete rollback evidence, and complete read-back or physical verification evidence. The keymap candidate is rejected as too risky and not first-write appropriate.
+
+### In Scope
+
+- Preserve Work Package 1 through Work Package 17 behavior
+- Candidate-selection model and data types
+- Outcome A and Outcome B result models
+- Selection statuses limited to `not-selected`, `rejected-insufficient-evidence`, `rejected-too-risky`, `rejected-not-first-write-appropriate`, and `selected-for-future-WP-review`
+- Validation that zero or one candidate can be selected
+- Validation that selected candidates remain non-executable
+- Review logic for WP17 evidence and candidate dossiers
+- Risk score threshold checks: Outcome B requires `1` or `2`
+- Reversibility score threshold checks: Outcome B requires `4` or `5`
+- Hardware-risk checks: Outcome B requires `visual-only-low-risk` or `single-setting-low-risk`
+- Mutation-scope checks: Outcome B requires visual-only or single-setting scope
+- Backup and rollback condition checks
+- Read-back or physical verification condition checks
+- GPL/source-cleanliness checks
+- Candidate rejection rationale
+- Future implementation constraints for any future Outcome B
+- Protocol Research and Diagnostics candidate-selection status
+- Local-only selection record export
+- README.md, PROJECT_PLAYBOOK.md, RESEARCH_NOTES.md, CHANGELOG.md, guide, fixture, and tests
+
+### Out of Scope
+
+- Any write command implementation, approval, enablement, or execution
+- Any new HID command
+- Any change to the WP13/WP16 read-only `wp13-device-info-read` behavior or gates
+- Apply, sync, or save-to-device behavior
+- Setting writes
+- Lighting writes
+- Keymap writes
+- Rapid trigger, SOCD, macro, profile, firmware, calibration, DFU, bootloader, factory reset, or full-profile apply behavior
+- Arbitrary command entry
+- Raw command consoles
+- Packet editing
+- Command registry execution
+- Retries
+- Polling
+- Scanning
+- Fuzzing
+- Brute force or probing
+- Automatic execution on app launch, device connect, screen open, import, export, validation, backup, rollback planning, read-back planning, compare, editor open, or diagnostics open
+- Hidden follow-up commands
+- Claims that write support exists
+- Claims that candidate selection is implementation approval
+- Claims that a selected candidate is executable now
+- Treating backup, rollback, read-back, or physical verification evidence as execution approval
+- Selecting more than one future write candidate
+- Copied GPL-3.0 source code, comments, constants, packet builders, structures, or implementation material
+
+### Design Rules
+
+- Candidate selection records must remain local-only and inert.
+- Candidate selection validation and export must not access HID devices.
+- Outcome B, if ever produced by evidence, must select exactly one candidate for future review only.
+- The future write gate must remain disabled and require a separate work package and Red Team plan.
+- The WP13/WP16 `AA 10 30` controlled read behavior must remain unchanged.
+
+---
+
 ## 8. Required Screens
 
 The current app must include these screens:
@@ -1164,6 +1236,7 @@ The current app must include these screens:
 16. Read Protocol Evidence Pack section under Protocol Research
 17. Read-Only Settings Foundation section under Protocol Research
 18. First Write Evidence Plan section under Protocol Research
+19. First Write Candidate Selection section under Protocol Research
 
 All screens must remain free of keyboard hardware writes. The only command-capable exception is the WP13-approved `AA 10 30` controlled device-info read/query.
 

@@ -1,12 +1,12 @@
 # AK680 Studio
 
-AK680 Studio is an unofficial, open-source native desktop public alpha for inspecting AJAZZ AK680 V2 profile exports, detecting the target keyboard with read-only HID metadata, running one approved controlled device-info read/query, managing local saved profile backups, editing imported profile JSON locally, previewing future write safety plans, and running one experimental one-shot lighting write only after manual confirmation.
+AK680 Studio is an unofficial, open-source native desktop public alpha for inspecting AJAZZ AK680 V2 profile exports, detecting the target keyboard with read-only HID metadata, running one approved controlled device-info read/query, managing local saved profile backups, editing imported profile JSON locally, previewing future write safety plans, and writing AK680 V2 global lighting through the gated WP22 packet family after manual confirmation.
 
 This project is not affiliated with, endorsed by, or maintained by AJAZZ. The official vendor tooling remains the supported configuration path until any native hardware-write behavior is researched, documented, reviewed, and explicitly approved in a future work package.
 
 ## Public Alpha Status
 
-AK680 Studio is local-only and has no general keyboard write support. The only current hardware-write path is the WP21 experimental one-shot lighting write, which is manually gated and limited to one fixed packet.
+AK680 Studio is local-only and has no general keyboard write support. The current hardware-write path is the WP22 functional global lighting pack for AK680 V2 only, manually gated and limited to the approved `AA 23 10` packet family.
 
 - Profile imports are parsed locally.
 - Saved profiles and backups stay on this machine.
@@ -24,7 +24,7 @@ AK680 Studio is local-only and has no general keyboard write support. The only c
 - Functional Lighting Pack writes global AK680 V2 lighting through the approved packet family after manual confirmation.
 - Protocol Evidence Guide and Candidate Query Dossier collect evidence only and do not enable command execution.
 - HID detection enumerates safe metadata only.
-- No general hardware writes are implemented beyond the single WP21 fixed-packet lighting experiment.
+- No general hardware writes are implemented beyond the WP22 functional AK680 V2 global lighting packet family.
 - No apply, sync, save-to-device, firmware flashing, calibration, cloud sync, user account, remote upload, or database feature is included.
 - This is not a complete keyboard control suite yet.
 
@@ -137,7 +137,7 @@ Smoke-test notes are observations only:
 - WP13 target gates remain AK680 V2 VID `3141`, PID `32956`, exact selected path/interface, and usage page `65384` / usage `97` where metadata is available.
 - One confirmed WP13 manual action sends at most one request.
 - No retries, polling, scanning, fuzzing, raw command console, arbitrary payload input, or packet editing is implemented for the smoke-test path.
-- General writes, apply, sync, save-to-device, setting writes, firmware flashing, and calibration remain unimplemented beyond the separate WP21 fixed-packet lighting experiment.
+- General writes, apply, sync, save-to-device, setting writes, firmware flashing, and calibration remain unimplemented beyond the separate WP22 functional AK680 V2 global lighting packet family.
 - A physical response must not be treated as proof of firmware version, settings state, calibration state, layout state, memory state, profile state, or write capability.
 
 The Protocol Research screen can export a local smoke-test template JSON so a tester can record status, response length, response hex prefix, observed VID/PID-like bytes when present, and plain notes without changing the keyboard.
@@ -421,12 +421,12 @@ Hardware-write or protocol work requires documented research, explicit maintaine
 
 See [SECURITY.md](SECURITY.md) for responsible disclosure and hardware-safety reporting guidance.
 
-Report unsafe hardware-control behavior, accidental write paths, or security issues promptly. The only expected hardware-write path in the current public alpha is the manually confirmed WP21 fixed-packet lighting experiment.
+Report unsafe hardware-control behavior, accidental write paths, or security issues promptly. The only expected hardware-write path in the current public alpha is the manually confirmed WP22 functional AK680 V2 global lighting packet family.
 
 ## Not Supported Yet
 
-- General hardware writes beyond the WP21 fixed-packet lighting experiment
-- HID write/send commands beyond the WP21 fixed-packet lighting experiment
+- General hardware writes beyond the WP22 functional AK680 V2 global lighting packet family
+- HID write/send commands beyond the WP22 functional AK680 V2 global lighting packet family
 - Unknown HID command packets
 - Fuzzing, brute forcing, command scanning, background polling, or continuous monitoring
 - Keyboard configuration reads/writes

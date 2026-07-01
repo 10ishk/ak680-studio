@@ -8,6 +8,7 @@
 - Added Lighting UI controls for RGB color, brightness, speed, direction, color mode/effect, generated packet preview, manual confirmation, final confirmation, result display, and local evidence export.
 - Preserved the WP21 fixed-packet experiment and WP20 dry-run planner without converting either into generic execution.
 - Added Rust and TypeScript tests for packet length, report ID, target metadata, RGB/brightness/speed/direction encoding, out-of-range rejection, command-family enforcement, interface gates, confirmation gates, no retry/polling/follow-up behavior, evidence redaction, and unchanged WP13/WP20/WP21 boundaries.
+- Passed Red Team QA for Work Package 22 with no blockers.
 
 Known limitations:
 

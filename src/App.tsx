@@ -1082,8 +1082,9 @@ function Dashboard({
             <ShieldCheck className="mt-1 h-5 w-5 text-moss" />
             <p className="text-sm leading-6 text-slate-700">
               This public alpha imports local JSON, stores saved profiles locally, and displays profile information
-              locally. The only hardware-write path is the manually gated WP21 fixed-packet lighting experiment. It
-              has no cloud sync, no account system, no firmware tools, and no embedded vendor website.
+              locally. The only hardware-write path is the manually gated WP22 functional AK680 V2 global lighting
+              packet family. It has no cloud sync, no account system, no firmware tools, and no embedded vendor
+              website.
             </p>
           </div>
         </div>
@@ -3593,9 +3594,9 @@ function Diagnostics({
   const lightingDryRunPlan = createLightingDryRunPlan(profile);
   const safetyItems = useMemo(
     () => [
-      "No general hardware write commands beyond WP21 fixed-packet lighting experiment",
+      "No general hardware write commands beyond WP22 functional AK680 V2 global lighting",
       "No key remapping write UI",
-      "No RGB write UI",
+      "RGB write UI is limited to WP22 global lighting only",
       "No rapid trigger write UI",
       "No SOCD write UI",
       "No macro write UI",
@@ -3954,7 +3955,7 @@ function About() {
             { label: "Profile storage", value: "Local browser storage on this machine" },
             { label: "Profile backups", value: "Local JSON import/export only" },
             { label: "Profile editing", value: "Local JSON edits only" },
-            { label: "Hardware writes", value: "Only WP21 fixed-packet lighting experiment" },
+            { label: "Hardware writes", value: "Only WP22 functional AK680 V2 global lighting" },
             { label: "Vendor affiliation", value: "Unofficial; no AJAZZ affiliation" },
           ]}
         />
@@ -3963,10 +3964,11 @@ function About() {
         <div className="rounded border border-line bg-white p-5">
           <p className="text-sm leading-6 text-slate-700">
             AK680 Studio can inspect imported profile JSON, list local HID device metadata, manage saved local profiles,
-            edit local profile JSON, export or restore local backup files, and run the manually gated WP21 fixed-packet
-            lighting experiment. It is not a complete keyboard control suite yet. General hardware-write, firmware,
-            calibration, device-side keymap/RGB/rapid trigger/SOCD writes, and macro editing work requires future
-            protocol research, Red Team review, and explicit maintainer approval before implementation.
+            edit local profile JSON, export or restore local backup files, and run the manually gated WP22 functional
+            AK680 V2 global lighting writes. It is not a complete keyboard control suite yet. General hardware-write,
+            firmware, calibration, device-side keymap/RGB beyond global lighting, rapid trigger/SOCD writes, and macro
+            editing work requires future protocol research, Red Team review, and explicit maintainer approval before
+            implementation.
           </p>
         </div>
       </Section>

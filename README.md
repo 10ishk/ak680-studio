@@ -1,12 +1,12 @@
 # AK680 Studio
 
-AK680 Studio is an unofficial, open-source native desktop public alpha for inspecting AJAZZ AK680 V2 profile exports, detecting the target keyboard with read-only HID metadata, running one approved controlled device-info read/query, managing local saved profile backups, editing imported profile JSON locally, and previewing future write safety plans without writing to the keyboard.
+AK680 Studio is an unofficial, open-source native desktop public alpha for inspecting AJAZZ AK680 V2 profile exports, detecting the target keyboard with read-only HID metadata, running one approved controlled device-info read/query, managing local saved profile backups, editing imported profile JSON locally, previewing future write safety plans, and running one experimental one-shot lighting write only after manual confirmation.
 
 This project is not affiliated with, endorsed by, or maintained by AJAZZ. The official vendor tooling remains the supported configuration path until any native hardware-write behavior is researched, documented, reviewed, and explicitly approved in a future work package.
 
 ## Public Alpha Status
 
-AK680 Studio is local-only and does not write to keyboard hardware.
+AK680 Studio is local-only and has no general keyboard write support. The only current hardware-write path is the WP21 experimental one-shot lighting write, which is manually gated and limited to one fixed packet.
 
 - Profile imports are parsed locally.
 - Saved profiles and backups stay on this machine.
@@ -20,9 +20,10 @@ AK680 Studio is local-only and does not write to keyboard hardware.
 - First Write Candidate Selection reviews WP17 evidence and records Outcome A with no selected write candidate.
 - Official Profile Model parses the AJAZZ AK680 V2 exported profile format locally.
 - Lighting Write Candidate Dry-Run Planner previews a local non-executable future lighting-write candidate.
+- WP21 Experimental One-Shot Lighting Write can attempt exactly one fixed lighting packet after manual confirmation.
 - Protocol Evidence Guide and Candidate Query Dossier collect evidence only and do not enable command execution.
 - HID detection enumerates safe metadata only.
-- No hardware writes are implemented.
+- No general hardware writes are implemented beyond the single WP21 fixed-packet lighting experiment.
 - No apply, sync, save-to-device, firmware flashing, calibration, cloud sync, user account, remote upload, or database feature is included.
 - This is not a complete keyboard control suite yet.
 
@@ -54,6 +55,7 @@ AK680 Studio is local-only and does not write to keyboard hardware.
 - First Write Candidate Selection with Outcome A, candidate rejection rationale, threshold checks, and local example export.
 - Official Profile Model summaries for device/profile data, key layout, SOCD assignments, active RT keys, lighting, game mode, custom LED slots, macros, and DKS section presence.
 - Lighting Write Candidate Dry-Run Planner with AK680 V2 target metadata, report metadata, sanitized 64-byte preview bytes, warnings, disabled execution state, and a future WP21 checklist.
+- WP21 Experimental One-Shot Lighting Write with one fixed packet, backend target/interface gates, manual checkbox plus final confirmation, result display, and local sanitized evidence export.
 - Protocol Evidence Guide and Candidate Query Dossier template with local example dossier JSON export.
 - Protocol Research screen for safe HID metadata inspection and local diagnostics snapshot export.
 - Diagnostics and About screens with public-alpha safety status.
@@ -124,16 +126,16 @@ This is not write support. It does not change keyboard settings, apply profiles,
 
 ## Hardware Smoke Test / Release Safety
 
-WP14 adds a manual hardware smoke-test checklist for release-safety validation. The checklist is optional and does not run automatically. It does not add a second command, change the existing WP13 command, or unlock protocol execution.
+WP14 added a manual hardware smoke-test checklist for release-safety validation. The checklist is optional and does not run automatically. It did not add a second command, change the existing WP13 command, or unlock protocol execution.
 
 Smoke-test notes are observations only:
 
-- The only command-capable path remains the WP13 `AA 10 30` controlled device-info read/query.
-- Report ID remains `0`; request length remains `64` bytes.
-- Target gates remain AK680 V2 VID `3141`, PID `32956`, exact selected path/interface, and usage page `65384` / usage `97` where metadata is available.
-- One confirmed manual action sends at most one request.
-- No retries, polling, scanning, fuzzing, raw command console, arbitrary payload input, or packet editing is implemented.
-- No writes, apply, sync, save-to-device, setting writes, firmware flashing, or calibration is implemented.
+- The WP14 smoke-test path remains tied to the WP13 `AA 10 30` controlled device-info read/query.
+- WP13 report ID remains `0`; request length remains `64` bytes.
+- WP13 target gates remain AK680 V2 VID `3141`, PID `32956`, exact selected path/interface, and usage page `65384` / usage `97` where metadata is available.
+- One confirmed WP13 manual action sends at most one request.
+- No retries, polling, scanning, fuzzing, raw command console, arbitrary payload input, or packet editing is implemented for the smoke-test path.
+- General writes, apply, sync, save-to-device, setting writes, firmware flashing, and calibration remain unimplemented beyond the separate WP21 fixed-packet lighting experiment.
 - A physical response must not be treated as proof of firmware version, settings state, calibration state, layout state, memory state, profile state, or write capability.
 
 The Protocol Research screen can export a local smoke-test template JSON so a tester can record status, response length, response hex prefix, observed VID/PID-like bytes when present, and plain notes without changing the keyboard.
@@ -254,6 +256,33 @@ The preview format is `sanitized-global-static-lighting-preview-v1`. It is not a
 
 Future real lighting-write work requires a separate work package and Red Team plan. See [fixtures/wp20-lighting-dry-run.example.json](fixtures/wp20-lighting-dry-run.example.json) for a sanitized example export shape.
 
+## WP21 Experimental One-Shot Lighting Write
+
+WP21 adds the first controlled real hardware-write experiment. It is narrow by design: exactly one fixed static/global lighting packet can be attempted, only for AK680 V2 VID `3141`, PID `32956`, usage page `65384`, usage `97`, report ID `0`, and 64 bytes.
+
+Allowed packet:
+
+```text
+AA 23 10 00 00 00 01 00 01 FF 00 00 FF 00 00 00
+00 05 03 00 00 00 AA 55 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+```
+
+The backend owns the packet constant and independently enforces:
+
+- Non-empty exact selected HID path/interface
+- Current HID metadata contains the selected path
+- VID/PID exactly `3141 / 32956`
+- usagePage/usage exactly `65384 / 97`
+- Keyboard interface `usagePage 1 / usage 6` blocked
+- Consumer-control interface `usagePage 12 / usage 1` blocked
+- Report ID `0`, 64-byte packet length, and exact packet bytes
+
+The UI shows the exact bytes, selected interface, target metadata, and warnings before the attempt. The user must check the WP21 confirmation box and then accept a final confirmation dialog. Canceling, opening the screen, selecting an interface, importing profiles, validation, and export send nothing.
+
+WP21 is not full lighting support, profile write support, apply/sync/save-to-device behavior, RGB editing-to-device, a packet editor, a raw command console, arbitrary payload entry, command registry execution, or rollback support. One user action can attempt at most one HID write; there are no retries, polling, probing, hidden follow-up packets, automatic repeated writes, or automatic rollback packets. Evidence export is local JSON and redacts HID paths and serial numbers.
+
 ## Protocol Research
 
 The Protocol Research screen is a read-only, experimental toolkit for future AK680 V2 protocol work.
@@ -370,12 +399,12 @@ Hardware-write or protocol work requires documented research, explicit maintaine
 
 See [SECURITY.md](SECURITY.md) for responsible disclosure and hardware-safety reporting guidance.
 
-Report unsafe hardware-control behavior, accidental write paths, or security issues promptly. The current public alpha is not expected to write to keyboard hardware.
+Report unsafe hardware-control behavior, accidental write paths, or security issues promptly. The only expected hardware-write path in the current public alpha is the manually confirmed WP21 fixed-packet lighting experiment.
 
 ## Not Supported Yet
 
-- Hardware writes
-- HID write/send commands
+- General hardware writes beyond the WP21 fixed-packet lighting experiment
+- HID write/send commands beyond the WP21 fixed-packet lighting experiment
 - Unknown HID command packets
 - Fuzzing, brute forcing, command scanning, background polling, or continuous monitoring
 - Keyboard configuration reads/writes
@@ -388,7 +417,7 @@ Report unsafe hardware-control behavior, accidental write paths, or security iss
 - Device-side SOCD editor/write path
 - Macro editor
 - Keymap writes
-- RGB writes
+- General RGB writes beyond the WP21 fixed-packet lighting experiment
 - Rapid trigger writes
 - SOCD writes
 - Macro writes

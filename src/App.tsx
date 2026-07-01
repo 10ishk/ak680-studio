@@ -119,6 +119,19 @@ import {
   createFirstWriteCandidateSelectionExport,
   reviewFirstWriteCandidateSelection,
 } from "./lib/firstWriteCandidateSelection";
+import {
+  CONTROLLED_LIGHTING_WRITE_PACKET_BYTES,
+  CONTROLLED_LIGHTING_WRITE_PACKET_HEX,
+  CONTROLLED_LIGHTING_WRITE_PACKET_LENGTH,
+  CONTROLLED_LIGHTING_WRITE_REPORT_ID,
+  WP21_PHYSICAL_VERIFICATION_REMINDER,
+  createCanceledControlledLightingWriteResult,
+  createControlledLightingWriteBackendRequest,
+  createControlledLightingWriteExperimentState,
+  createControlledLightingWriteExport,
+  createControlledLightingWriteResultFromBackend,
+  getControlledLightingWriteCandidateInterfaces,
+} from "./lib/controlledLightingWriteExperiment";
 import { createLightingDryRunExport, createLightingDryRunPlan } from "./lib/lightingDryRunPlanner";
 import {
   getActiveRapidTriggerKeys,
@@ -136,6 +149,11 @@ import type {
   ControlledReadExperimentState,
   ControlledReadResult,
 } from "./lib/controlledReadExperiment";
+import type {
+  ControlledLightingWriteBackendResult,
+  ControlledLightingWriteExperimentState,
+  ControlledLightingWriteResult,
+} from "./lib/controlledLightingWriteExperiment";
 
 type Screen =
   | "dashboard"
@@ -185,6 +203,11 @@ export default function App() {
   const [editorSession, setEditorSession] = useState<LocalEditorSession | undefined>();
   const [controlledReadSelectedPath, setControlledReadSelectedPath] = useState("");
   const [controlledReadResult, setControlledReadResult] = useState<ControlledReadResult | undefined>();
+  const [controlledLightingWriteSelectedPath, setControlledLightingWriteSelectedPath] = useState("");
+  const [controlledLightingWriteConfirmed, setControlledLightingWriteConfirmed] = useState(false);
+  const [controlledLightingWriteResult, setControlledLightingWriteResult] = useState<
+    ControlledLightingWriteResult | undefined
+  >();
   const editorValidation = useMemo(() => validateEditorSession(editorSession), [editorSession]);
   const editorDiff = useMemo(() => createEditorDiffSummary(editorSession), [editorSession]);
   const [storageHealth, setStorageHealth] = useState<LocalProfileStorageState["storageHealth"]>(() =>
@@ -223,6 +246,21 @@ export default function App() {
         result: controlledReadResult,
       }),
     [controlledReadResult, controlledReadSelectedPath, hidDetection.result],
+  );
+  const controlledLightingWriteState = useMemo(
+    () =>
+      createControlledLightingWriteExperimentState({
+        hidDetection: hidDetection.result,
+        selectedPath: controlledLightingWriteSelectedPath || undefined,
+        manualConfirmation: controlledLightingWriteConfirmed,
+        result: controlledLightingWriteResult,
+      }),
+    [
+      controlledLightingWriteConfirmed,
+      controlledLightingWriteResult,
+      controlledLightingWriteSelectedPath,
+      hidDetection.result,
+    ],
   );
 
   useEffect(() => {
@@ -568,6 +606,18 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
+  function exportControlledLightingWriteEvidence() {
+    const exportedEvidence = createControlledLightingWriteExport({ state: controlledLightingWriteState });
+    const json = JSON.stringify(exportedEvidence, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ak680-wp21-lighting-write-evidence-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function runControlledDeviceInfoRead() {
     const selectedInterface = controlledReadState.selectedInterface;
     const request = createControlledReadBackendRequest(selectedInterface);
@@ -612,6 +662,71 @@ export default function App() {
           },
         }),
       );
+    }
+  }
+
+  async function runControlledLightingWrite() {
+    const selectedInterface = controlledLightingWriteState.selectedInterface;
+    const request = createControlledLightingWriteBackendRequest(
+      selectedInterface,
+      controlledLightingWriteState.manualConfirmation,
+    );
+
+    if (!controlledLightingWriteState.canRun || !request) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      [
+        "Run the WP21 experimental one-shot lighting write?",
+        "",
+        "This may change keyboard lighting.",
+        "This is experimental and not full lighting support.",
+        "Exactly one packet will be attempted.",
+        "No automatic rollback will occur.",
+        "Recovery/rollback is manual.",
+        "",
+        `Report ID: ${CONTROLLED_LIGHTING_WRITE_REPORT_ID}.`,
+        `Packet length: ${CONTROLLED_LIGHTING_WRITE_PACKET_LENGTH} bytes.`,
+        "Target: AK680 V2 VID/PID 3141/32956.",
+        "Required interface metadata: usagePage 65384, usage 97.",
+        `Selected path/interface: ${selectedInterface?.path ?? "None"}.`,
+        "",
+        CONTROLLED_LIGHTING_WRITE_PACKET_HEX,
+      ].join("\n"),
+    );
+
+    if (!confirmed) {
+      setControlledLightingWriteResult(createCanceledControlledLightingWriteResult({ selectedInterface }));
+      setControlledLightingWriteConfirmed(false);
+      return;
+    }
+
+    try {
+      const backendResult = await invoke<ControlledLightingWriteBackendResult>("run_controlled_lighting_write", {
+        request,
+      });
+      setControlledLightingWriteResult(
+        createControlledLightingWriteResultFromBackend({ backendResult, selectedInterface }),
+      );
+    } catch (error) {
+      setControlledLightingWriteResult(
+        createControlledLightingWriteResultFromBackend({
+          selectedInterface,
+          backendResult: {
+            status: "failure",
+            message: error instanceof Error ? error.message : String(error),
+            reportId: CONTROLLED_LIGHTING_WRITE_REPORT_ID,
+            packetLength: CONTROLLED_LIGHTING_WRITE_PACKET_LENGTH,
+            attemptedPacket: CONTROLLED_LIGHTING_WRITE_PACKET_BYTES,
+            writeAttemptCount: 0,
+            retryCount: 0,
+            followUpPacketCount: 0,
+          },
+        }),
+      );
+    } finally {
+      setControlledLightingWriteConfirmed(false);
     }
   }
 
@@ -709,7 +824,21 @@ export default function App() {
           )}
           {activeScreen === "inspector" && <ProfileInspector profile={profile} importedProfile={importedProfile} />}
           {activeScreen === "layout" && <KeyboardLayout profile={profile} />}
-          {activeScreen === "lighting" && <Lighting profile={profile} onExportDryRunPreview={exportLightingDryRunPreview} />}
+          {activeScreen === "lighting" && (
+            <Lighting
+              profile={profile}
+              hidDetection={hidDetection}
+              controlledLightingWriteState={controlledLightingWriteState}
+              controlledLightingWriteSelectedPath={controlledLightingWriteSelectedPath}
+              onControlledLightingWriteSelectedPathChange={setControlledLightingWriteSelectedPath}
+              controlledLightingWriteConfirmed={controlledLightingWriteConfirmed}
+              onControlledLightingWriteConfirmedChange={setControlledLightingWriteConfirmed}
+              onRunControlledLightingWrite={runControlledLightingWrite}
+              onExportDryRunPreview={exportLightingDryRunPreview}
+              onExportControlledLightingWriteEvidence={exportControlledLightingWriteEvidence}
+              onRefreshDetection={refreshHidDetection}
+            />
+          )}
           {activeScreen === "rapid-trigger" && <RapidTrigger profile={profile} />}
           {activeScreen === "macros" && <Macros profile={profile} />}
           {activeScreen === "protocol" && (
@@ -742,6 +871,7 @@ export default function App() {
               editorDiff={editorDiff}
               dryRunPlan={dryRunPlan}
               controlledReadState={controlledReadState}
+              controlledLightingWriteState={controlledLightingWriteState}
             />
           )}
           {activeScreen === "about" && <About />}
@@ -831,8 +961,8 @@ function Dashboard({
             <ShieldCheck className="mt-1 h-5 w-5 text-moss" />
             <p className="text-sm leading-6 text-slate-700">
               This public alpha imports local JSON, stores saved profiles locally, and displays profile information
-              only. It has no hardware write path, no cloud sync, no account system, no firmware tools, and no
-              embedded vendor website.
+              locally. The only hardware-write path is the manually gated WP21 fixed-packet lighting experiment. It
+              has no cloud sync, no account system, no firmware tools, and no embedded vendor website.
             </p>
           </div>
         </div>
@@ -2024,13 +2154,32 @@ function KeyCap({ keyboardKey }: { keyboardKey: KeyboardKey }) {
 
 function Lighting({
   profile,
+  hidDetection,
+  controlledLightingWriteState,
+  controlledLightingWriteSelectedPath,
+  onControlledLightingWriteSelectedPathChange,
+  controlledLightingWriteConfirmed,
+  onControlledLightingWriteConfirmedChange,
+  onRunControlledLightingWrite,
   onExportDryRunPreview,
+  onExportControlledLightingWriteEvidence,
+  onRefreshDetection,
 }: {
   profile?: AjazzProfile;
+  hidDetection: HidDetectionState;
+  controlledLightingWriteState: ControlledLightingWriteExperimentState;
+  controlledLightingWriteSelectedPath: string;
+  onControlledLightingWriteSelectedPathChange: (path: string) => void;
+  controlledLightingWriteConfirmed: boolean;
+  onControlledLightingWriteConfirmedChange: (confirmed: boolean) => void;
+  onRunControlledLightingWrite: () => Promise<void>;
   onExportDryRunPreview: () => void;
+  onExportControlledLightingWriteEvidence: () => void;
+  onRefreshDetection: () => Promise<void>;
 }) {
   const lighting = getLightingSummary(profile);
   const dryRunPlan = createLightingDryRunPlan(profile);
+  const writeInterfaces = getControlledLightingWriteCandidateInterfaces(hidDetection.result);
   return (
     <>
       <PageHeader title="Lighting" eyebrow="LED data summary" />
@@ -2046,7 +2195,7 @@ function Lighting({
             { label: "Color mode", value: lighting.colorMode },
             { label: "Custom LED slots", value: lighting.customLedCount },
             { label: "Custom LED active RGB slots", value: lighting.activeCustomLedCount },
-            { label: "Hardware writes", value: "Not implemented" },
+            { label: "General lighting writes", value: "Not implemented; WP21 fixed-packet experiment is separate below" },
           ]}
         />
       </Section>
@@ -2128,6 +2277,158 @@ function Lighting({
           </button>
         </div>
       </Section>
+      <Section title="WP21 Experimental One-Shot Lighting Write">
+        <div className="space-y-4">
+          <div className="rounded border border-copper/40 bg-copper/10 p-5">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
+              <div>
+                <p className="font-bold text-ink">Experimental real write: one fixed packet only</p>
+                <p className="mt-1 text-sm leading-6 text-slate-700">
+                  WP21 may change keyboard lighting. It is not full lighting support, not profile write support, and
+                  not apply/sync/save-to-device behavior. It sends at most one fixed packet after manual confirmation,
+                  with no retry, polling, probing, hidden follow-up packet, automatic rollback, packet editor, raw
+                  command console, arbitrary payload input, or RGB value write path.
+                </p>
+              </div>
+            </div>
+          </div>
+          <InfoGrid
+            items={[
+              { label: "Target", value: "AK680 V2 only" },
+              { label: "VID/PID", value: "3141 / 32956" },
+              { label: "Required usagePage / usage", value: "65384 / 97" },
+              { label: "Report ID", value: CONTROLLED_LIGHTING_WRITE_REPORT_ID },
+              { label: "Packet length", value: `${CONTROLLED_LIGHTING_WRITE_PACKET_LENGTH} bytes` },
+              { label: "Selected path/interface", value: controlledLightingWriteState.selectedInterface?.path ?? "None" },
+              { label: "Run status", value: controlledLightingWriteState.runStatus },
+              { label: "Retry count", value: 0 },
+              { label: "Follow-up packet count", value: 0 },
+              { label: "Recovery/rollback", value: "Manual only" },
+            ]}
+          />
+          <div className="rounded border border-line bg-white p-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <label className="block flex-1">
+                <span className="text-sm font-semibold text-ink">Exact AK680 V2 HID path/interface</span>
+                <select
+                  value={controlledLightingWriteSelectedPath}
+                  onChange={(event) => {
+                    onControlledLightingWriteSelectedPathChange(event.target.value);
+                    onControlledLightingWriteConfirmedChange(false);
+                  }}
+                  className="mt-2 w-full rounded border border-line bg-white px-3 py-2 text-sm"
+                >
+                  <option value="">Select target interface</option>
+                  {writeInterfaces.map((device) => (
+                    <option key={device.path ?? "unknown-path"} value={device.path ?? ""}>
+                      {device.path} | usagePage {device.usagePage ?? "n/a"} / usage {device.usage ?? "n/a"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  void onRefreshDetection();
+                }}
+                disabled={hidDetection.status === "checking"}
+                className="rounded border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:bg-cloud disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {hidDetection.status === "checking" ? "Refreshing..." : "Refresh Metadata"}
+              </button>
+            </div>
+          </div>
+          <div className="rounded border border-line bg-white p-5">
+            <p className="font-semibold text-ink">Exact approved packet bytes</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              These bytes are fixed in the backend and are not generated from imported profiles, UI state, RGB controls,
+              fixtures, or the WP20 dry-run planner.
+            </p>
+            <pre className="mt-3 max-h-44 overflow-auto rounded border border-line bg-cloud p-3 text-xs leading-6 text-slate-800">
+              {CONTROLLED_LIGHTING_WRITE_PACKET_HEX}
+            </pre>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">Pre-write gates</p>
+              <ul className="mt-3 grid gap-2">
+                {controlledLightingWriteState.gates.map((gate) => (
+                  <li key={gate.label} className="rounded border border-line bg-cloud px-3 py-2 text-sm text-slate-700">
+                    <span className="font-semibold text-ink">{gate.label}: </span>
+                    {gate.status} - {gate.detail}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">Manual confirmation checklist</p>
+              <ul className="mt-3 grid gap-2 text-sm text-slate-700">
+                <li>Wired USB connection is active.</li>
+                <li>Target is AK680 V2 with VID/PID 3141 / 32956.</li>
+                <li>Selected interface is usagePage 65384 / usage 97.</li>
+                <li>Report ID is 0 and packet length is 64 bytes.</li>
+                <li>Exact bytes match the displayed AA 23 10 packet.</li>
+                <li>Current profile or lighting state has been exported/backed up.</li>
+                <li>The write may change keyboard lighting.</li>
+                <li>Recovery is manual: official AJAZZ app/profile restore or future tested rollback WP.</li>
+                <li>Physical verification is visual confirmation that keyboard lighting changed.</li>
+              </ul>
+              <label className="mt-4 flex items-start gap-3 rounded border border-copper/40 bg-copper/10 p-3 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={controlledLightingWriteConfirmed}
+                  onChange={(event) => onControlledLightingWriteConfirmedChange(event.target.checked)}
+                  className="mt-1"
+                />
+                <span>
+                  I understand WP21 is experimental, may change keyboard lighting, sends one fixed packet only, has no
+                  automatic rollback, and recovery is manual.
+                </span>
+              </label>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                void onRunControlledLightingWrite();
+              }}
+              disabled={!controlledLightingWriteState.canRun}
+              title={controlledLightingWriteState.runDisabledReason}
+              className="rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Run WP21 One-Shot Lighting Write
+            </button>
+            <button
+              type="button"
+              onClick={onExportControlledLightingWriteEvidence}
+              className="rounded border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:bg-cloud"
+            >
+              Export WP21 Evidence JSON
+            </button>
+          </div>
+          {controlledLightingWriteState.result && (
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">WP21 result</p>
+              <InfoGrid
+                items={[
+                  { label: "Status", value: controlledLightingWriteState.result.status },
+                  { label: "Timestamp", value: formatTimestamp(controlledLightingWriteState.result.timestamp) },
+                  { label: "Report ID", value: controlledLightingWriteState.result.reportId },
+                  { label: "Packet length", value: controlledLightingWriteState.result.packetLength },
+                  { label: "Attempted packet", value: controlledLightingWriteState.result.packetHex },
+                  { label: "Write attempt count", value: controlledLightingWriteState.result.writeAttemptCount },
+                  { label: "Retry count", value: controlledLightingWriteState.result.retryCount },
+                  { label: "Follow-up packet count", value: controlledLightingWriteState.result.followUpPacketCount },
+                  { label: "Message", value: controlledLightingWriteState.result.message },
+                  { label: "Physical verification", value: WP21_PHYSICAL_VERIFICATION_REMINDER },
+                ]}
+              />
+            </div>
+          )}
+        </div>
+      </Section>
       <Section title="LED Effect">
         <JsonPreview data={profile?.ledEffect} />
       </Section>
@@ -2151,7 +2452,7 @@ function RapidTrigger({ profile }: { profile?: AjazzProfile }) {
             { label: "magneticAxisDKS records", value: summarizeArray(profile?.magneticAxisDKS) },
             { label: "Active RT keys", value: activeRtKeys.length },
             { label: "Calibration", value: "Calibration is not available in this public alpha" },
-            { label: "Hardware writes", value: "Not implemented" },
+            { label: "RT hardware writes", value: "Not implemented" },
           ]}
         />
       </Section>
@@ -2955,6 +3256,7 @@ function Diagnostics({
   editorDiff,
   dryRunPlan,
   controlledReadState,
+  controlledLightingWriteState,
 }: {
   importedProfile: ImportedProfile;
   hidDetection: HidDetectionState;
@@ -2964,6 +3266,7 @@ function Diagnostics({
   editorDiff: EditorDiffSummary;
   dryRunPlan: DryRunPlan;
   controlledReadState: ControlledReadExperimentState;
+  controlledLightingWriteState: ControlledLightingWriteExperimentState;
 }) {
   const profile = importedProfile.validation.valid ? importedProfile.profile : undefined;
   const hidStatus = getHidStatusText(hidDetection);
@@ -2980,7 +3283,7 @@ function Diagnostics({
   const lightingDryRunPlan = createLightingDryRunPlan(profile);
   const safetyItems = useMemo(
     () => [
-      "No hardware write commands",
+      "No general hardware write commands beyond WP21 fixed-packet lighting experiment",
       "No key remapping write UI",
       "No RGB write UI",
       "No rapid trigger write UI",
@@ -3017,6 +3320,8 @@ function Diagnostics({
       "WP20 lighting dry-run planner is non-executable",
       "WP20 adds no lighting write command",
       "WP20 preview/export does not touch HID devices",
+      "WP21 implements exactly one fixed one-shot lighting write",
+      "WP21 has no retry, polling, probing, hidden follow-up, or automatic rollback",
     ],
     [],
   );
@@ -3146,7 +3451,7 @@ function Diagnostics({
               value: dryRunPlan.checklist.filter((item) => item.status === "blocked").length,
             },
             { label: "No packets sent", value: "Confirmed" },
-            { label: "Hardware writes", value: "Not implemented" },
+            { label: "Hardware writes", value: "Not implemented by the WP8 dry-run planner" },
             { label: "Execution", value: dryRunPlan.execution.status },
           ]}
         />
@@ -3172,6 +3477,32 @@ function Diagnostics({
             { label: "Polling", value: lightingDryRunPlan.reportMetadata.pollingAllowed ? "Allowed" : "Not allowed" },
             { label: "Automatic execution", value: lightingDryRunPlan.reportMetadata.automaticExecutionAllowed ? "Allowed" : "Not allowed" },
             { label: "Future real write", value: "Requires separate work package and Red Team plan" },
+          ]}
+        />
+      </Section>
+      <Section title="WP21 Controlled Lighting Write Status">
+        <InfoGrid
+          items={[
+            { label: "WP21 scope", value: "Experimental one-shot lighting write only" },
+            { label: "Implementation", value: controlledLightingWriteState.implementationStatus },
+            { label: "Action", value: controlledLightingWriteState.actionName },
+            { label: "Target", value: "AK680 V2 only" },
+            { label: "VID/PID", value: "3141 / 32956" },
+            { label: "Required usagePage / usage", value: "65384 / 97" },
+            { label: "Report ID", value: CONTROLLED_LIGHTING_WRITE_REPORT_ID },
+            { label: "Packet length", value: CONTROLLED_LIGHTING_WRITE_PACKET_LENGTH },
+            { label: "Selected path/interface", value: controlledLightingWriteState.selectedInterface?.path ?? "None" },
+            { label: "Manual confirmation", value: controlledLightingWriteState.manualConfirmation ? "Checked" : "Required" },
+            { label: "Can run", value: controlledLightingWriteState.canRun ? "Yes" : "No" },
+            { label: "Last status", value: controlledLightingWriteState.runStatus },
+            { label: "Write attempt count", value: controlledLightingWriteState.result?.writeAttemptCount ?? 0 },
+            { label: "Retry count", value: 0 },
+            { label: "Follow-up packet count", value: 0 },
+            { label: "Hidden follow-up packet", value: "Not implemented" },
+            { label: "Automatic rollback", value: "Not implemented" },
+            { label: "Full lighting support", value: "Not implemented" },
+            { label: "Profile write support", value: "Not implemented" },
+            { label: "Apply/sync/save-to-device", value: "Not implemented" },
           ]}
         />
       </Section>
@@ -3313,7 +3644,7 @@ function About() {
             { label: "Profile storage", value: "Local browser storage on this machine" },
             { label: "Profile backups", value: "Local JSON import/export only" },
             { label: "Profile editing", value: "Local JSON edits only" },
-            { label: "Hardware writes", value: "Not implemented" },
+            { label: "Hardware writes", value: "Only WP21 fixed-packet lighting experiment" },
             { label: "Vendor affiliation", value: "Unofficial; no AJAZZ affiliation" },
           ]}
         />
@@ -3322,10 +3653,10 @@ function About() {
         <div className="rounded border border-line bg-white p-5">
           <p className="text-sm leading-6 text-slate-700">
             AK680 Studio can inspect imported profile JSON, list local HID device metadata, manage saved local profiles,
-            edit local profile JSON, and export or restore local backup files. It is not a complete keyboard control
-            suite yet. Hardware-write, firmware, calibration, device-side keymap/RGB/rapid trigger/SOCD writes, and
-            macro editing work requires future protocol research, Red Team review, and explicit maintainer approval
-            before implementation.
+            edit local profile JSON, export or restore local backup files, and run the manually gated WP21 fixed-packet
+            lighting experiment. It is not a complete keyboard control suite yet. General hardware-write, firmware,
+            calibration, device-side keymap/RGB/rapid trigger/SOCD writes, and macro editing work requires future
+            protocol research, Red Team review, and explicit maintainer approval before implementation.
           </p>
         </div>
       </Section>

@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased - Work Package 21
+
+- Added the WP21 Experimental One-Shot Lighting Write as the first controlled real hardware-write experiment.
+- Added exactly one Rust/Tauri write command for one fixed AK680 V2 lighting packet only.
+- Added backend validation for non-empty selected path, current HID metadata path existence, VID/PID `3141 / 32956`, usagePage `65384`, usage `97`, report ID `0`, 64-byte packet length, exact packet bytes, keyboard-interface blocking, consumer-control-interface blocking, and metadata mismatch blocking.
+- Added Lighting UI for exact packet review, target metadata, selected interface metadata, manual checkbox confirmation, final confirmation dialog, warnings, result status, attempt/retry/follow-up counts, physical verification reminder, and local sanitized evidence export.
+- Added Diagnostics status for WP21 command scope, gating, write attempt count, retry count zero, follow-up packet count zero, and unsupported full lighting/profile/apply behavior.
+- Added TypeScript and Rust tests for exact packet bytes, report ID, packet length, VID/PID gates, usage gates, blocked keyboard/consumer-control interfaces, selected path gates, manual confirmation, canceled result behavior, one-shot attempt counts, no retries, no polling/follow-up, evidence export shape, WP13/WP16 boundary preservation, and WP20 dry-run non-execution.
+- Updated README.md and CHANGELOG.md with WP21 scope and limitations.
+
+Known limitations:
+
+- WP21 is not general lighting support, profile write support, apply/sync/save-to-device behavior, RGB editing-to-device, rollback support, a raw command console, arbitrary payload entry, packet editor, or command registry execution.
+- Exactly one fixed packet is executable: `AA 23 10 00 00 00 01 00 01 FF 00 00 FF 00 00 00 00 05 03 00 00 00 AA 55` followed by zeros to 64 bytes.
+- One user action can attempt at most one HID write. Retries, polling, probing, hidden follow-up packets, automatic repeated writes, and automatic rollback packets are not implemented.
+- Packet bytes do not come from user input, imported profile data, RGB controls, fixtures, or the WP20 dry-run planner.
+- WP13/WP16 read-only command behavior remains unchanged.
+- WP20 dry-run planning remains intact and non-executable.
+- Raw WebHID logs, research dumps, private traces, scratch files, serials, tokens, secrets, and local paths remain uncommitted.
+
 ## Unreleased - Work Package 20
 
 - Added a local-only Lighting Write Candidate Dry-Run Planner for a possible future first controlled global/static lighting write candidate.

@@ -124,12 +124,17 @@ import {
   CONTROLLED_LIGHTING_WRITE_PACKET_HEX,
   CONTROLLED_LIGHTING_WRITE_PACKET_LENGTH,
   CONTROLLED_LIGHTING_WRITE_REPORT_ID,
+  WP22_PHYSICAL_VERIFICATION_REMINDER,
+  buildFunctionalLightingPacket,
   WP21_PHYSICAL_VERIFICATION_REMINDER,
   createCanceledControlledLightingWriteResult,
   createControlledLightingWriteBackendRequest,
   createControlledLightingWriteExperimentState,
   createControlledLightingWriteExport,
   createControlledLightingWriteResultFromBackend,
+  createFunctionalLightingSettingsFromLedEffect,
+  createFunctionalLightingWriteBackendRequest,
+  createFunctionalLightingWriteExport,
   getControlledLightingWriteCandidateInterfaces,
 } from "./lib/controlledLightingWriteExperiment";
 import { createLightingDryRunExport, createLightingDryRunPlan } from "./lib/lightingDryRunPlanner";
@@ -153,6 +158,7 @@ import type {
   ControlledLightingWriteBackendResult,
   ControlledLightingWriteExperimentState,
   ControlledLightingWriteResult,
+  FunctionalLightingSettings,
 } from "./lib/controlledLightingWriteExperiment";
 
 type Screen =
@@ -208,6 +214,11 @@ export default function App() {
   const [controlledLightingWriteResult, setControlledLightingWriteResult] = useState<
     ControlledLightingWriteResult | undefined
   >();
+  const [functionalLightingSettings, setFunctionalLightingSettings] = useState<FunctionalLightingSettings>(() =>
+    createFunctionalLightingSettingsFromLedEffect(sampleImport.profile.ledEffect),
+  );
+  const [functionalLightingConfirmed, setFunctionalLightingConfirmed] = useState(false);
+  const [functionalLightingResult, setFunctionalLightingResult] = useState<ControlledLightingWriteResult | undefined>();
   const editorValidation = useMemo(() => validateEditorSession(editorSession), [editorSession]);
   const editorDiff = useMemo(() => createEditorDiffSummary(editorSession), [editorSession]);
   const [storageHealth, setStorageHealth] = useState<LocalProfileStorageState["storageHealth"]>(() =>
@@ -262,6 +273,23 @@ export default function App() {
       hidDetection.result,
     ],
   );
+  const functionalLightingWriteState = useMemo(
+    () =>
+      createControlledLightingWriteExperimentState({
+        hidDetection: hidDetection.result,
+        selectedPath: controlledLightingWriteSelectedPath || undefined,
+        manualConfirmation: functionalLightingConfirmed,
+        result: functionalLightingResult,
+      }),
+    [controlledLightingWriteSelectedPath, functionalLightingConfirmed, functionalLightingResult, hidDetection.result],
+  );
+
+  useEffect(() => {
+    if (importedProfile.validation.valid) {
+      setFunctionalLightingSettings(createFunctionalLightingSettingsFromLedEffect(importedProfile.profile.ledEffect));
+      setFunctionalLightingConfirmed(false);
+    }
+  }, [importedProfile]);
 
   useEffect(() => {
     try {
@@ -618,6 +646,21 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
+  function exportFunctionalLightingWriteEvidence() {
+    const exportedEvidence = createFunctionalLightingWriteExport({
+      state: functionalLightingWriteState,
+      settings: functionalLightingSettings,
+    });
+    const json = JSON.stringify(exportedEvidence, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ak680-wp22-functional-lighting-evidence-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function runControlledDeviceInfoRead() {
     const selectedInterface = controlledReadState.selectedInterface;
     const request = createControlledReadBackendRequest(selectedInterface);
@@ -730,6 +773,77 @@ export default function App() {
     }
   }
 
+  async function runFunctionalLightingWrite() {
+    const selectedInterface = functionalLightingWriteState.selectedInterface;
+    const packet = buildFunctionalLightingPacket(functionalLightingSettings);
+    const packetHex = packet.map((byte) => byte.toString(16).padStart(2, "0").toUpperCase()).join(" ");
+    const request = createFunctionalLightingWriteBackendRequest(
+      selectedInterface,
+      functionalLightingWriteState.manualConfirmation,
+      functionalLightingSettings,
+    );
+
+    if (!functionalLightingWriteState.canRun || !request) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      [
+        "Write lighting to AK680 V2?",
+        "",
+        "This writes keyboard lighting using the approved AA 23 10 global lighting packet family.",
+        "It is not profile apply, sync, save-to-device, or arbitrary packet execution.",
+        "One packet will be attempted. No retry, polling, probing, hidden follow-up, or automatic rollback.",
+        "",
+        `RGB: ${functionalLightingSettings.red}, ${functionalLightingSettings.green}, ${functionalLightingSettings.blue}.`,
+        `Brightness: ${functionalLightingSettings.brightness}.`,
+        `Speed: ${functionalLightingSettings.speed}.`,
+        `Direction: ${functionalLightingSettings.direction}.`,
+        `Color mode/effect: ${functionalLightingSettings.colorMode}.`,
+        `Report ID: ${CONTROLLED_LIGHTING_WRITE_REPORT_ID}.`,
+        `Packet length: ${CONTROLLED_LIGHTING_WRITE_PACKET_LENGTH} bytes.`,
+        "Target: AK680 V2 VID/PID 3141/32956.",
+        "Required interface metadata: usagePage 65384, usage 97.",
+        `Selected path/interface: ${selectedInterface?.path ?? "None"}.`,
+        "",
+        packetHex,
+      ].join("\n"),
+    );
+
+    if (!confirmed) {
+      setFunctionalLightingResult(createCanceledControlledLightingWriteResult({ selectedInterface }));
+      setFunctionalLightingConfirmed(false);
+      return;
+    }
+
+    try {
+      const backendResult = await invoke<ControlledLightingWriteBackendResult>("run_functional_lighting_write", {
+        request,
+      });
+      setFunctionalLightingResult(
+        createControlledLightingWriteResultFromBackend({ backendResult, selectedInterface }),
+      );
+    } catch (error) {
+      setFunctionalLightingResult(
+        createControlledLightingWriteResultFromBackend({
+          selectedInterface,
+          backendResult: {
+            status: "failure",
+            message: error instanceof Error ? error.message : String(error),
+            reportId: CONTROLLED_LIGHTING_WRITE_REPORT_ID,
+            packetLength: CONTROLLED_LIGHTING_WRITE_PACKET_LENGTH,
+            attemptedPacket: packet,
+            writeAttemptCount: 0,
+            retryCount: 0,
+            followUpPacketCount: 0,
+          },
+        }),
+      );
+    } finally {
+      setFunctionalLightingConfirmed(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-cloud text-ink">
       <div className="grid min-h-screen lg:grid-cols-[260px_1fr]">
@@ -741,7 +855,7 @@ export default function App() {
               </div>
               <div>
                 <p className="text-lg font-bold">AK680 Studio</p>
-                <p className="text-xs text-slate-600">Public alpha, no hardware writes</p>
+                <p className="text-xs text-slate-600">Public alpha, gated lighting writes</p>
               </div>
             </div>
           </div>
@@ -829,13 +943,20 @@ export default function App() {
               profile={profile}
               hidDetection={hidDetection}
               controlledLightingWriteState={controlledLightingWriteState}
+              functionalLightingWriteState={functionalLightingWriteState}
+              functionalLightingSettings={functionalLightingSettings}
+              onFunctionalLightingSettingsChange={setFunctionalLightingSettings}
               controlledLightingWriteSelectedPath={controlledLightingWriteSelectedPath}
               onControlledLightingWriteSelectedPathChange={setControlledLightingWriteSelectedPath}
               controlledLightingWriteConfirmed={controlledLightingWriteConfirmed}
               onControlledLightingWriteConfirmedChange={setControlledLightingWriteConfirmed}
+              functionalLightingConfirmed={functionalLightingConfirmed}
+              onFunctionalLightingConfirmedChange={setFunctionalLightingConfirmed}
               onRunControlledLightingWrite={runControlledLightingWrite}
+              onRunFunctionalLightingWrite={runFunctionalLightingWrite}
               onExportDryRunPreview={exportLightingDryRunPreview}
               onExportControlledLightingWriteEvidence={exportControlledLightingWriteEvidence}
+              onExportFunctionalLightingWriteEvidence={exportFunctionalLightingWriteEvidence}
               onRefreshDetection={refreshHidDetection}
             />
           )}
@@ -908,12 +1029,12 @@ function AlphaSafetyNotice() {
       <div className="flex items-start gap-3">
         <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
         <div>
-          <p className="font-bold text-ink">Public alpha, local-only, and no hardware writes</p>
+          <p className="font-bold text-ink">Public alpha, local-only, and gated lighting writes</p>
           <p className="mt-1 text-sm leading-6 text-slate-700">
             AK680 Studio is an unofficial community project for the AJAZZ AK680 V2. It is not affiliated with,
             endorsed by, or maintained by AJAZZ. This alpha stores data locally, enumerates HID devices with
-            read-only metadata, allows one approved controlled device-info read/query, and does not write settings to
-            keyboard hardware.
+            read-only metadata, allows one approved controlled device-info read/query, and writes only AK680 V2 global
+            lighting through the gated WP22 packet family.
           </p>
         </div>
       </div>
@@ -2156,30 +2277,53 @@ function Lighting({
   profile,
   hidDetection,
   controlledLightingWriteState,
+  functionalLightingWriteState,
+  functionalLightingSettings,
+  onFunctionalLightingSettingsChange,
   controlledLightingWriteSelectedPath,
   onControlledLightingWriteSelectedPathChange,
   controlledLightingWriteConfirmed,
   onControlledLightingWriteConfirmedChange,
+  functionalLightingConfirmed,
+  onFunctionalLightingConfirmedChange,
   onRunControlledLightingWrite,
+  onRunFunctionalLightingWrite,
   onExportDryRunPreview,
   onExportControlledLightingWriteEvidence,
+  onExportFunctionalLightingWriteEvidence,
   onRefreshDetection,
 }: {
   profile?: AjazzProfile;
   hidDetection: HidDetectionState;
   controlledLightingWriteState: ControlledLightingWriteExperimentState;
+  functionalLightingWriteState: ControlledLightingWriteExperimentState;
+  functionalLightingSettings: FunctionalLightingSettings;
+  onFunctionalLightingSettingsChange: (settings: FunctionalLightingSettings) => void;
   controlledLightingWriteSelectedPath: string;
   onControlledLightingWriteSelectedPathChange: (path: string) => void;
   controlledLightingWriteConfirmed: boolean;
   onControlledLightingWriteConfirmedChange: (confirmed: boolean) => void;
+  functionalLightingConfirmed: boolean;
+  onFunctionalLightingConfirmedChange: (confirmed: boolean) => void;
   onRunControlledLightingWrite: () => Promise<void>;
+  onRunFunctionalLightingWrite: () => Promise<void>;
   onExportDryRunPreview: () => void;
   onExportControlledLightingWriteEvidence: () => void;
+  onExportFunctionalLightingWriteEvidence: () => void;
   onRefreshDetection: () => Promise<void>;
 }) {
   const lighting = getLightingSummary(profile);
   const dryRunPlan = createLightingDryRunPlan(profile);
   const writeInterfaces = getControlledLightingWriteCandidateInterfaces(hidDetection.result);
+  const functionalPacket = buildFunctionalLightingPacket(functionalLightingSettings);
+  const functionalPacketHex = functionalPacket.map((byte) => byte.toString(16).padStart(2, "0").toUpperCase()).join(" ");
+  const updateLightingSetting = (key: keyof FunctionalLightingSettings, value: number) => {
+    onFunctionalLightingSettingsChange({
+      ...functionalLightingSettings,
+      [key]: Math.min(255, Math.max(0, Number.isFinite(value) ? Math.round(value) : 0)),
+    });
+    onFunctionalLightingConfirmedChange(false);
+  };
   return (
     <>
       <PageHeader title="Lighting" eyebrow="LED data summary" />
@@ -2195,9 +2339,175 @@ function Lighting({
             { label: "Color mode", value: lighting.colorMode },
             { label: "Custom LED slots", value: lighting.customLedCount },
             { label: "Custom LED active RGB slots", value: lighting.activeCustomLedCount },
-            { label: "General lighting writes", value: "Not implemented; WP21 fixed-packet experiment is separate below" },
+            { label: "Global lighting writes", value: "Available for AK680 V2 through WP22 gated packet family" },
           ]}
         />
+      </Section>
+      <Section title="Functional Global Lighting">
+        <div className="space-y-4">
+          <div className="rounded border border-copper/40 bg-copper/10 p-5">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-1 h-5 w-5 shrink-0 text-copper" />
+              <div>
+                <p className="font-bold text-ink">Writes keyboard lighting only</p>
+                <p className="mt-1 text-sm leading-6 text-slate-700">
+                  WP22 writes global lighting through the approved AA 23 10 packet family for AK680 V2 only. Only RGB,
+                  brightness, speed, direction, and color mode/effect can vary. This is not profile apply, sync,
+                  save-to-device, raw packet entry, a packet editor, or unrelated setting writes.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded border border-line bg-white p-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <label className="block flex-1">
+                <span className="text-sm font-semibold text-ink">Exact AK680 V2 HID path/interface</span>
+                <select
+                  value={controlledLightingWriteSelectedPath}
+                  onChange={(event) => {
+                    onControlledLightingWriteSelectedPathChange(event.target.value);
+                    onFunctionalLightingConfirmedChange(false);
+                    onControlledLightingWriteConfirmedChange(false);
+                  }}
+                  className="mt-2 w-full rounded border border-line bg-white px-3 py-2 text-sm"
+                >
+                  <option value="">Select target interface</option>
+                  {writeInterfaces.map((device) => (
+                    <option key={device.path ?? "unknown-path"} value={device.path ?? ""}>
+                      {device.path} | usagePage {device.usagePage ?? "n/a"} / usage {device.usage ?? "n/a"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  void onRefreshDetection();
+                }}
+                disabled={hidDetection.status === "checking"}
+                className="rounded border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:bg-cloud disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {hidDetection.status === "checking" ? "Refreshing..." : "Refresh Metadata"}
+              </button>
+            </div>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">Lighting controls</p>
+              <label className="mt-3 block text-sm font-semibold text-ink">
+                RGB color
+                <input
+                  type="color"
+                  value={`#${functionalLightingSettings.red.toString(16).padStart(2, "0")}${functionalLightingSettings.green.toString(16).padStart(2, "0")}${functionalLightingSettings.blue.toString(16).padStart(2, "0")}`}
+                  onChange={(event) => {
+                    const hex = event.target.value.slice(1);
+                    onFunctionalLightingSettingsChange({
+                      ...functionalLightingSettings,
+                      red: Number.parseInt(hex.slice(0, 2), 16),
+                      green: Number.parseInt(hex.slice(2, 4), 16),
+                      blue: Number.parseInt(hex.slice(4, 6), 16),
+                    });
+                    onFunctionalLightingConfirmedChange(false);
+                  }}
+                  className="mt-2 h-10 w-full rounded border border-line bg-white px-2"
+                />
+              </label>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {(["red", "green", "blue", "brightness", "speed", "direction", "colorMode"] as const).map((key) => (
+                  <label key={key} className="block text-sm font-semibold text-ink">
+                    {key}
+                    <input
+                      type="number"
+                      min={0}
+                      max={255}
+                      value={functionalLightingSettings[key]}
+                      onChange={(event) => updateLightingSetting(key, Number(event.target.value))}
+                      className="mt-2 w-full rounded border border-line px-3 py-2 text-sm"
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">Generated packet preview</p>
+              <InfoGrid
+                items={[
+                  { label: "Target", value: "AK680 V2 only" },
+                  { label: "VID/PID", value: "3141 / 32956" },
+                  { label: "Required usagePage / usage", value: "65384 / 97" },
+                  { label: "Report ID", value: CONTROLLED_LIGHTING_WRITE_REPORT_ID },
+                  { label: "Packet length", value: `${CONTROLLED_LIGHTING_WRITE_PACKET_LENGTH} bytes` },
+                  { label: "Variable bytes", value: "8, 9, 10, 11, 12, 17, 18 only" },
+                  { label: "Retry count", value: 0 },
+                  { label: "Follow-up packet count", value: 0 },
+                ]}
+              />
+              <pre className="mt-3 max-h-44 overflow-auto rounded border border-line bg-cloud p-3 text-xs leading-6 text-slate-800">
+                {functionalPacketHex}
+              </pre>
+            </div>
+          </div>
+          <div className="rounded border border-line bg-white p-5">
+            <p className="font-semibold text-ink">Functional write gates</p>
+            <ul className="mt-3 grid gap-2">
+              {functionalLightingWriteState.gates.map((gate) => (
+                <li key={gate.label} className="rounded border border-line bg-cloud px-3 py-2 text-sm text-slate-700">
+                  <span className="font-semibold text-ink">{gate.label}: </span>
+                  {gate.status} - {gate.detail}
+                </li>
+              ))}
+            </ul>
+            <label className="mt-4 flex items-start gap-3 rounded border border-copper/40 bg-copper/10 p-3 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={functionalLightingConfirmed}
+                onChange={(event) => onFunctionalLightingConfirmedChange(event.target.checked)}
+                className="mt-1"
+              />
+              <span>
+                I understand this writes keyboard lighting, sends one generated AA 23 10 packet only, has no automatic
+                rollback, and recovery is manual.
+              </span>
+            </label>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                void onRunFunctionalLightingWrite();
+              }}
+              disabled={!functionalLightingWriteState.canRun}
+              title={functionalLightingWriteState.runDisabledReason}
+              className="rounded bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-moss disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Write Lighting to AK680 V2
+            </button>
+            <button
+              type="button"
+              onClick={onExportFunctionalLightingWriteEvidence}
+              className="rounded border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:bg-cloud"
+            >
+              Export WP22 Evidence JSON
+            </button>
+          </div>
+          {functionalLightingWriteState.result && (
+            <div className="rounded border border-line bg-white p-5">
+              <p className="font-semibold text-ink">Functional lighting result</p>
+              <InfoGrid
+                items={[
+                  { label: "Status", value: functionalLightingWriteState.result.status },
+                  { label: "Timestamp", value: formatTimestamp(functionalLightingWriteState.result.timestamp) },
+                  { label: "Attempted packet", value: functionalLightingWriteState.result.packetHex },
+                  { label: "Write attempt count", value: functionalLightingWriteState.result.writeAttemptCount },
+                  { label: "Retry count", value: functionalLightingWriteState.result.retryCount },
+                  { label: "Follow-up packet count", value: functionalLightingWriteState.result.followUpPacketCount },
+                  { label: "Physical verification", value: WP22_PHYSICAL_VERIFICATION_REMINDER },
+                  { label: "Message", value: functionalLightingWriteState.result.message },
+                ]}
+              />
+            </div>
+          )}
+        </div>
       </Section>
       <Section title="Lighting Write Candidate Dry-Run">
         <div className="space-y-4">
@@ -3538,7 +3848,7 @@ function Diagnostics({
             { label: "WP13 boundary", value: "Unchanged" },
             { label: "Report ID / request length", value: "0 / 64 bytes" },
             { label: "Required interface", value: "usagePage 65384 / usage 97" },
-            { label: "Read-only status", value: "Hardware reads only; no writes" },
+            { label: "Read-only status", value: "WP16 snapshots remain read-only; WP22 lighting writes are separate" },
             { label: "Manual confirmation", value: "Required before approved read" },
             { label: "Retry count", value: 0 },
             { label: "Polling", value: "Disabled" },

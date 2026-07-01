@@ -21,6 +21,7 @@ AK680 Studio is local-only and has no general keyboard write support. The only c
 - Official Profile Model parses the AJAZZ AK680 V2 exported profile format locally.
 - Lighting Write Candidate Dry-Run Planner previews a local non-executable future lighting-write candidate.
 - WP21 Experimental One-Shot Lighting Write can attempt exactly one fixed lighting packet after manual confirmation.
+- Functional Lighting Pack writes global AK680 V2 lighting through the approved packet family after manual confirmation.
 - Protocol Evidence Guide and Candidate Query Dossier collect evidence only and do not enable command execution.
 - HID detection enumerates safe metadata only.
 - No general hardware writes are implemented beyond the single WP21 fixed-packet lighting experiment.
@@ -56,6 +57,7 @@ AK680 Studio is local-only and has no general keyboard write support. The only c
 - Official Profile Model summaries for device/profile data, key layout, SOCD assignments, active RT keys, lighting, game mode, custom LED slots, macros, and DKS section presence.
 - Lighting Write Candidate Dry-Run Planner with AK680 V2 target metadata, report metadata, sanitized 64-byte preview bytes, warnings, disabled execution state, and a future WP21 checklist.
 - WP21 Experimental One-Shot Lighting Write with one fixed packet, backend target/interface gates, manual checkbox plus final confirmation, result display, and local sanitized evidence export.
+- Functional Lighting Pack with RGB color, brightness, speed, direction, color mode/effect, generated packet preview, backend gates, and local evidence export.
 - Protocol Evidence Guide and Candidate Query Dossier template with local example dossier JSON export.
 - Protocol Research screen for safe HID metadata inspection and local diagnostics snapshot export.
 - Diagnostics and About screens with public-alpha safety status.
@@ -283,6 +285,26 @@ The UI shows the exact bytes, selected interface, target metadata, and warnings 
 
 WP21 is not full lighting support, profile write support, apply/sync/save-to-device behavior, RGB editing-to-device, a packet editor, a raw command console, arbitrary payload entry, command registry execution, or rollback support. One user action can attempt at most one HID write; there are no retries, polling, probing, hidden follow-up packets, automatic repeated writes, or automatic rollback packets. Evidence export is local JSON and redacts HID paths and serial numbers.
 
+## Functional Lighting Pack
+
+WP22 turns the proven WP21 path into a practical global lighting feature for AK680 V2 only. It remains scoped to the observed `AA 23 10` global lighting packet family with report ID `0`, 64-byte reports, VID `3141`, PID `32956`, usage page `65384`, and usage `97`.
+
+User-controlled fields are limited to:
+
+- Red
+- Green
+- Blue
+- Brightness
+- Speed
+- Direction
+- Color mode/effect
+
+Only packet byte indexes `8`, `9`, `10`, `11`, `12`, `17`, and `18` can vary. The command prefix, markers, report ID, packet length, target gates, and all other bytes are fixed and validated. The backend rejects wrong VID/PID, wrong usagePage/usage, keyboard interface `usagePage 1 / usage 6`, consumer-control interface `usagePage 12 / usage 1`, empty selected paths, missing selected paths, non-64-byte packets, unsupported command-family changes, and out-of-range lighting values.
+
+The Lighting page shows the generated packet before writing and requires a manual checkbox plus final confirmation popup. One user action attempts at most one write. There is no retry, polling, probing, hidden follow-up packet, automatic rollback, raw command console, arbitrary payload input, packet editor, command registry execution, apply/sync/save-to-device behavior, or unrelated RT/SOCD/keymap/macro/profile/firmware/calibration write.
+
+Evidence export is local JSON and redacts HID paths and serial numbers.
+
 ## Protocol Research
 
 The Protocol Research screen is a read-only, experimental toolkit for future AK680 V2 protocol work.
@@ -417,7 +439,7 @@ Report unsafe hardware-control behavior, accidental write paths, or security iss
 - Device-side SOCD editor/write path
 - Macro editor
 - Keymap writes
-- General RGB writes beyond the WP21 fixed-packet lighting experiment
+- General RGB writes beyond the WP22 global lighting packet family
 - Rapid trigger writes
 - SOCD writes
 - Macro writes

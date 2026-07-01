@@ -47,6 +47,18 @@ export interface ControlledLightingWriteBackendRequest {
   manualConfirmation: boolean;
 }
 
+export interface FunctionalLightingSettings {
+  red: number;
+  green: number;
+  blue: number;
+  brightness: number;
+  speed: number;
+  direction: number;
+  colorMode: number;
+}
+
+export interface FunctionalLightingWriteBackendRequest extends ControlledLightingWriteBackendRequest, FunctionalLightingSettings {}
+
 export interface ControlledLightingWriteBackendResult {
   status: "success" | "blocked" | "failure";
   message: string;
@@ -86,7 +98,7 @@ export interface ControlledLightingWriteTargetSummary {
 }
 
 export interface ControlledLightingWriteExport {
-  exportType: "ak680-wp21-controlled-lighting-write-evidence";
+  exportType: "ak680-wp21-controlled-lighting-write-evidence" | "ak680-wp22-functional-lighting-write-evidence";
   timestamp: string;
   localOnly: true;
   noSensitiveData: true;
@@ -135,6 +147,7 @@ export const CONTROLLED_LIGHTING_WRITE_PACKET_LENGTH = CONTROLLED_LIGHTING_WRITE
 export const CONTROLLED_LIGHTING_WRITE_PACKET_HEX = formatHex(CONTROLLED_LIGHTING_WRITE_PACKET_BYTES);
 export const CONTROLLED_LIGHTING_WRITE_REQUIRED_USAGE_PAGE = 65384;
 export const CONTROLLED_LIGHTING_WRITE_REQUIRED_USAGE = 97;
+export const FUNCTIONAL_LIGHTING_VARIABLE_INDEXES = [8, 9, 10, 11, 12, 17, 18] as const;
 export const CONTROLLED_LIGHTING_WRITE_TARGET_METADATA = {
   device: "AJAZZ AK680 V2",
   vendorId: 3141,
@@ -146,6 +159,65 @@ export const CONTROLLED_LIGHTING_WRITE_TARGET_METADATA = {
 } as const;
 export const WP21_PHYSICAL_VERIFICATION_REMINDER =
   "Physically verify keyboard lighting after the attempt. Recovery/rollback is manual through the official AJAZZ app/profile restore or a future tested rollback package.";
+export const WP22_PHYSICAL_VERIFICATION_REMINDER =
+  "Physically verify keyboard lighting after the attempt. Recovery is manual through the official AJAZZ app/profile restore or another explicitly triggered lighting write.";
+
+export function createFunctionalLightingSettingsFromLedEffect(ledEffect?: {
+  red?: unknown;
+  green?: unknown;
+  blue?: unknown;
+  brightness?: unknown;
+  speed?: unknown;
+  direction?: unknown;
+  colorMode?: unknown;
+}): FunctionalLightingSettings {
+  return {
+    red: toByte(ledEffect?.red, 255),
+    green: toByte(ledEffect?.green, 0),
+    blue: toByte(ledEffect?.blue, 0),
+    brightness: toByte(ledEffect?.brightness, 255),
+    speed: toByte(ledEffect?.speed, 5),
+    direction: toByte(ledEffect?.direction, 3),
+    colorMode: toByte(ledEffect?.colorMode, 1),
+  };
+}
+
+export function buildFunctionalLightingPacket(settings: FunctionalLightingSettings): number[] {
+  const packet = [...CONTROLLED_LIGHTING_WRITE_PACKET_BYTES];
+  packet[8] = validateByte(settings.colorMode, "colorMode");
+  packet[9] = validateByte(settings.red, "red");
+  packet[10] = validateByte(settings.green, "green");
+  packet[11] = validateByte(settings.blue, "blue");
+  packet[12] = validateByte(settings.brightness, "brightness");
+  packet[17] = validateByte(settings.speed, "speed");
+  packet[18] = validateByte(settings.direction, "direction");
+  validateFunctionalLightingPacketFamily(packet);
+  return packet;
+}
+
+export function validateFunctionalLightingPacketFamily(packet: number[]) {
+  if (packet.length !== CONTROLLED_LIGHTING_WRITE_PACKET_LENGTH) {
+    throw new Error("Functional lighting packet must be exactly 64 bytes.");
+  }
+
+  if (packet[0] !== 0xaa || packet[1] !== 0x23 || packet[2] !== 0x10) {
+    throw new Error("Functional lighting packet prefix must remain AA 23 10.");
+  }
+
+  if (packet[22] !== 0xaa || packet[23] !== 0x55) {
+    throw new Error("Functional lighting packet marker bytes must remain AA 55.");
+  }
+
+  packet.forEach((byte, index) => {
+    validateByte(byte, `packet[${index}]`);
+    if (
+      !(FUNCTIONAL_LIGHTING_VARIABLE_INDEXES as readonly number[]).includes(index) &&
+      byte !== CONTROLLED_LIGHTING_WRITE_PACKET_BYTES[index]
+    ) {
+      throw new Error(`Functional lighting packet byte index ${index} is not allowed to vary.`);
+    }
+  });
+}
 
 export function createControlledLightingWriteExperimentState({
   hidDetection,
@@ -203,6 +275,28 @@ export function createControlledLightingWriteBackendRequest(
   };
 }
 
+export function createFunctionalLightingWriteBackendRequest(
+  selectedInterface: HidDeviceMetadata | undefined,
+  manualConfirmation: boolean,
+  settings: FunctionalLightingSettings,
+): FunctionalLightingWriteBackendRequest | undefined {
+  if (!selectedInterface?.path || !manualConfirmation) {
+    return undefined;
+  }
+
+  buildFunctionalLightingPacket(settings);
+
+  return {
+    selectedPath: selectedInterface.path,
+    vendorId: selectedInterface.vendorId,
+    productId: selectedInterface.productId,
+    usagePage: selectedInterface.usagePage,
+    usage: selectedInterface.usage,
+    manualConfirmation,
+    ...settings,
+  };
+}
+
 export function createCanceledControlledLightingWriteResult({
   selectedInterface,
   now = new Date(),
@@ -246,9 +340,17 @@ export function createControlledLightingWriteResultFromBackend({
 export function createControlledLightingWriteExport({
   state,
   now = new Date(),
+  exportType = "ak680-wp21-controlled-lighting-write-evidence",
+  packetHex = CONTROLLED_LIGHTING_WRITE_PACKET_HEX,
+  physicalVerificationReminder = WP21_PHYSICAL_VERIFICATION_REMINDER,
+  safetyNotes,
 }: {
   state: ControlledLightingWriteExperimentState;
   now?: Date;
+  exportType?: ControlledLightingWriteExport["exportType"];
+  packetHex?: string;
+  physicalVerificationReminder?: string;
+  safetyNotes?: string[];
 }): ControlledLightingWriteExport {
   const result =
     state.result ??
@@ -264,7 +366,7 @@ export function createControlledLightingWriteExport({
     });
 
   return {
-    exportType: "ak680-wp21-controlled-lighting-write-evidence",
+    exportType,
     timestamp: now.toISOString(),
     localOnly: true,
     noSensitiveData: true,
@@ -274,7 +376,7 @@ export function createControlledLightingWriteExport({
     resultStatus: result.status,
     reportId: CONTROLLED_LIGHTING_WRITE_REPORT_ID,
     packetLength: CONTROLLED_LIGHTING_WRITE_PACKET_LENGTH,
-    packetHex: CONTROLLED_LIGHTING_WRITE_PACKET_HEX,
+    packetHex,
     targetMetadata: CONTROLLED_LIGHTING_WRITE_TARGET_METADATA,
     selectedInterface: state.selectedInterface ? summarizeEvidenceInterface(state.selectedInterface) : undefined,
     gateResults: state.gates.map(sanitizeEvidenceGate),
@@ -282,9 +384,9 @@ export function createControlledLightingWriteExport({
     writeAttemptCount: result.writeAttemptCount,
     retryCount: 0,
     followUpPacketCount: 0,
-    physicalVerificationReminder: WP21_PHYSICAL_VERIFICATION_REMINDER,
+    physicalVerificationReminder,
     message: result.message,
-    safetyNotes: [
+    safetyNotes: safetyNotes ?? [
       "WP21 implements exactly one experimental one-shot lighting write.",
       "The only executable packet is the fixed AA 23 10 packet with report ID 0 and 64 bytes.",
       "Packet bytes do not come from user input, imported profile data, RGB controls, fixtures, or the WP20 dry-run planner.",
@@ -292,6 +394,36 @@ export function createControlledLightingWriteExport({
       "This is not full lighting support, profile write support, apply/sync/save-to-device behavior, or a general packet console.",
       "Evidence export is local and redacts HID paths and serial numbers.",
     ],
+  };
+}
+
+export function createFunctionalLightingWriteExport({
+  state,
+  settings,
+  now = new Date(),
+}: {
+  state: ControlledLightingWriteExperimentState;
+  settings: FunctionalLightingSettings;
+  now?: Date;
+}): ControlledLightingWriteExport & { settings: FunctionalLightingSettings; variableByteIndexes: readonly number[] } {
+  const packet = buildFunctionalLightingPacket(settings);
+  return {
+    ...createControlledLightingWriteExport({
+      state,
+      now,
+      exportType: "ak680-wp22-functional-lighting-write-evidence",
+      packetHex: formatHex(packet),
+      physicalVerificationReminder: WP22_PHYSICAL_VERIFICATION_REMINDER,
+      safetyNotes: [
+        "WP22 implements functional global lighting writes for the approved AA 23 10 packet family only.",
+        "Only colorMode, red, green, blue, brightness, speed, and direction fields can vary.",
+        "No arbitrary packet input, raw command console, packet editor, RGB write outside the approved family, or profile apply behavior is implemented.",
+        "One manual action can attempt at most one HID write; retries, polling, probing, hidden follow-up packets, and automatic rollback are not implemented.",
+        "Evidence export is local and redacts HID paths and serial numbers.",
+      ],
+    }),
+    settings,
+    variableByteIndexes: FUNCTIONAL_LIGHTING_VARIABLE_INDEXES,
   };
 }
 
@@ -474,6 +606,18 @@ function formatOptional(value: string | number | null | undefined) {
 
 function formatHex(bytes: number[]): string {
   return bytes.map((byte) => byte.toString(16).padStart(2, "0").toUpperCase()).join(" ");
+}
+
+function validateByte(value: number, field: string) {
+  if (!Number.isInteger(value) || value < 0 || value > 255) {
+    throw new Error(`Lighting field ${field} must be an integer in 0..255.`);
+  }
+
+  return value;
+}
+
+function toByte(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) ? Math.min(255, Math.max(0, Math.round(value))) : fallback;
 }
 
 export function assertWp21BoundariesForTests() {

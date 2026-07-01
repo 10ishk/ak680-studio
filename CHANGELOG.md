@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased - Work Package 22
+
+- Added Functional Lighting Pack for AK680 V2 global lighting writes using the approved `AA 23 10` packet family.
+- Added a narrow backend `run_functional_lighting_write` command with the same AK680 V2 VID/PID, exact path/interface, usagePage `65384`, usage `97`, report ID `0`, 64-byte packet, keyboard-interface block, and consumer-control-interface block gates.
+- Added packet builder support where only color mode/effect, red, green, blue, brightness, speed, and direction bytes can vary.
+- Added Lighting UI controls for RGB color, brightness, speed, direction, color mode/effect, generated packet preview, manual confirmation, final confirmation, result display, and local evidence export.
+- Preserved the WP21 fixed-packet experiment and WP20 dry-run planner without converting either into generic execution.
+- Added Rust and TypeScript tests for packet length, report ID, target metadata, RGB/brightness/speed/direction encoding, out-of-range rejection, command-family enforcement, interface gates, confirmation gates, no retry/polling/follow-up behavior, evidence redaction, and unchanged WP13/WP20/WP21 boundaries.
+
+Known limitations:
+
+- WP22 supports only the observed global lighting `AA 23 10` packet family.
+- WP22 does not add arbitrary packet input, raw command console, packet editor, command registry execution, apply/sync/save-to-device behavior, RT/SOCD/keymap/macro/profile/firmware/calibration writes, retries, polling, probing, hidden follow-up packets, or automatic rollback.
+- Raw WebHID logs, research dumps, private traces, scratch files, serials, tokens, secrets, and local paths remain uncommitted.
+
 ## Unreleased - Work Package 21
 
 - Added the WP21 Experimental One-Shot Lighting Write as the first controlled real hardware-write experiment.

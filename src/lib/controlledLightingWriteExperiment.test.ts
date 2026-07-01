@@ -7,13 +7,19 @@ import {
   CONTROLLED_LIGHTING_WRITE_REPORT_ID,
   CONTROLLED_LIGHTING_WRITE_REQUIRED_USAGE,
   CONTROLLED_LIGHTING_WRITE_REQUIRED_USAGE_PAGE,
+  FUNCTIONAL_LIGHTING_VARIABLE_INDEXES,
   assertWp21BoundariesForTests,
+  buildFunctionalLightingPacket,
   createCanceledControlledLightingWriteResult,
   createControlledLightingWriteBackendRequest,
   createControlledLightingWriteExperimentState,
   createControlledLightingWriteExport,
   createControlledLightingWriteResultFromBackend,
+  createFunctionalLightingSettingsFromLedEffect,
+  createFunctionalLightingWriteBackendRequest,
+  createFunctionalLightingWriteExport,
   getControlledLightingWriteCandidateInterfaces,
+  validateFunctionalLightingPacketFamily,
 } from "./controlledLightingWriteExperiment";
 
 const matchingDevice: HidDeviceMetadata = {
@@ -233,5 +239,119 @@ describe("controlled lighting write experiment", () => {
     expect(boundaries.wp20DryRunReportId).toBe(0);
     expect(boundaries.wp20DryRunLength).toBe(64);
     expect(boundaries.wp20DryRunExecutionEnabled).toBe(false);
+  });
+
+  it("builds WP22 functional lighting packets with only approved variable bytes", () => {
+    const settings = { colorMode: 2, red: 12, green: 34, blue: 56, brightness: 7, speed: 8, direction: 9 };
+    const packet = buildFunctionalLightingPacket(settings);
+
+    expect(packet).toHaveLength(64);
+    expect(packet.slice(0, 3)).toEqual([0xaa, 0x23, 0x10]);
+    expect(packet[8]).toBe(2);
+    expect(packet[9]).toBe(12);
+    expect(packet[10]).toBe(34);
+    expect(packet[11]).toBe(56);
+    expect(packet[12]).toBe(7);
+    expect(packet[17]).toBe(8);
+    expect(packet[18]).toBe(9);
+
+    packet.forEach((byte, index) => {
+      if (!(FUNCTIONAL_LIGHTING_VARIABLE_INDEXES as readonly number[]).includes(index)) {
+        expect(byte).toBe(CONTROLLED_LIGHTING_WRITE_PACKET_BYTES[index]);
+      }
+    });
+  });
+
+  it("rejects out-of-range values and non-approved command family changes", () => {
+    expect(() =>
+      buildFunctionalLightingPacket({ colorMode: 1, red: 256, green: 0, blue: 0, brightness: 5, speed: 3, direction: 0 }),
+    ).toThrow(/red/);
+
+    const packet = buildFunctionalLightingPacket({
+      colorMode: 1,
+      red: 1,
+      green: 2,
+      blue: 3,
+      brightness: 4,
+      speed: 5,
+      direction: 6,
+    });
+    packet[0] = 0xab;
+    expect(() => validateFunctionalLightingPacketFamily(packet)).toThrow(/prefix/);
+
+    const packetWithBadMutation = buildFunctionalLightingPacket({
+      colorMode: 1,
+      red: 1,
+      green: 2,
+      blue: 3,
+      brightness: 4,
+      speed: 5,
+      direction: 6,
+    });
+    packetWithBadMutation[13] = 1;
+    expect(() => validateFunctionalLightingPacketFamily(packetWithBadMutation)).toThrow(/not allowed to vary/);
+  });
+
+  it("creates WP22 backend request only after confirmation and selected metadata", () => {
+    const settings = { colorMode: 1, red: 255, green: 0, blue: 0, brightness: 5, speed: 3, direction: 0 };
+
+    expect(createFunctionalLightingWriteBackendRequest(undefined, true, settings)).toBeUndefined();
+    expect(createFunctionalLightingWriteBackendRequest(matchingDevice, false, settings)).toBeUndefined();
+    expect(createFunctionalLightingWriteBackendRequest(matchingDevice, true, settings)).toEqual({
+      selectedPath: "hid-path-a",
+      vendorId: 3141,
+      productId: 32956,
+      usagePage: 65384,
+      usage: 97,
+      manualConfirmation: true,
+      ...settings,
+    });
+  });
+
+  it("uses official ledEffect values as functional lighting defaults", () => {
+    expect(
+      createFunctionalLightingSettingsFromLedEffect({
+        red: 10,
+        green: 20,
+        blue: 30,
+        brightness: 5,
+        speed: 3,
+        direction: 0,
+        colorMode: 1,
+      }),
+    ).toEqual({ red: 10, green: 20, blue: 30, brightness: 5, speed: 3, direction: 0, colorMode: 1 });
+  });
+
+  it("exports WP22 evidence with redacted sensitive metadata and no retries", () => {
+    const settings = { colorMode: 1, red: 255, green: 0, blue: 0, brightness: 5, speed: 3, direction: 0 };
+    const state = createControlledLightingWriteExperimentState({
+      hidDetection: detection,
+      selectedPath: "hid-path-a",
+      manualConfirmation: true,
+      result: createControlledLightingWriteResultFromBackend({
+        selectedInterface: matchingDevice,
+        now: new Date("2026-07-01T00:00:00.000Z"),
+        backendResult: {
+          status: "success",
+          message: "ok",
+          reportId: 0,
+          packetLength: 64,
+          attemptedPacket: buildFunctionalLightingPacket(settings),
+          writeAttemptCount: 1,
+          retryCount: 0,
+          followUpPacketCount: 0,
+        },
+      }),
+    });
+    const exported = createFunctionalLightingWriteExport({ state, settings });
+    const serialized = JSON.stringify(exported);
+
+    expect(exported.exportType).toBe("ak680-wp22-functional-lighting-write-evidence");
+    expect(exported.settings).toEqual(settings);
+    expect(exported.variableByteIndexes).toEqual(FUNCTIONAL_LIGHTING_VARIABLE_INDEXES);
+    expect(exported.retryCount).toBe(0);
+    expect(exported.followUpPacketCount).toBe(0);
+    expect(serialized).not.toContain("private-serial");
+    expect(serialized).not.toContain("hid-path-a");
   });
 });

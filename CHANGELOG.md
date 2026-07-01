@@ -9,6 +9,7 @@
 - Added Diagnostics status for WP21 command scope, gating, write attempt count, retry count zero, follow-up packet count zero, and unsupported full lighting/profile/apply behavior.
 - Added TypeScript and Rust tests for exact packet bytes, report ID, packet length, VID/PID gates, usage gates, blocked keyboard/consumer-control interfaces, selected path gates, manual confirmation, canceled result behavior, one-shot attempt counts, no retries, no polling/follow-up, evidence export shape, WP13/WP16 boundary preservation, and WP20 dry-run non-execution.
 - Updated README.md and CHANGELOG.md with WP21 scope and limitations.
+- Passed Red Team QA for Work Package 21 with no blockers.
 
 Known limitations:
 
